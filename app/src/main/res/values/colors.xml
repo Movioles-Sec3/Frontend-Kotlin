@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Functional Colors -->
+    <!-- Brand Palette (valores para modo día, por ejemplo) -->
+    <color name="color_primary">#5A3FFF</color>
+    <color name="color_primary_variant">#3A27CC</color>
+    <color name="color_on_primary">#FFFFFF</color>
+
+    <color name="color_secondary">#FF7F50</color>
+    <color name="color_secondary_variant">#FF6333</color>
+    <color name="color_on_secondary">#FFFFFF</color>
+
+    <!-- Backgrounds / Surfaces (valores para modo día) -->
+    <color name="color_background">#FFFFFF</color>
+    <color name="color_on_background">#121212</color>
+    <color name="color_surface">#F5F5F5</color>
+    <color name="color_on_surface">#121212</color>
+
+    <!-- Gradients (valores para modo día) -->
+    <color name="gradient_start">#5A3FFF</color>
+    <color name="gradient_end">#FF7F50</color>
+
+    <!-- Functional Colors (estos suelen ser los mismos para día y noche) -->
     <color name="success_color">#81C784</color>
     <color name="warning_color">#FFD54F</color>
     <color name="error_color">#E57373</color>

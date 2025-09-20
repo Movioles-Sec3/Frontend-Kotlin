@@ -1,20 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand Palette -->
-    <color name="color_primary">#5A3FFF</color>
-    <color name="color_primary_variant">#3A27CC</color>
-    <color name="color_on_primary">#FFFFFF</color>
+    <!-- Base application theme (Modo Noche), hereda del tema base de día. -->
+    <style name="Theme.TapToast" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Colores de la marca (noche) -->
+        <item name="colorPrimary">#8F7BFF</item> <!-- color_primary para noche -->
+        <item name="colorPrimaryVariant">#5A3FFF</item> <!-- color_primary_variant para noche -->
+        <item name="colorOnPrimary">#FFFFFF</item>
 
-    <color name="color_secondary">#FF7F50</color>
-    <color name="color_secondary_variant">#FF6333</color>
-    <color name="color_on_secondary">#FFFFFF</color>
+        <item name="colorSecondary">#FF9E80</item> <!-- color_secondary para noche -->
+        <item name="colorSecondaryVariant">#FF7F50</item> <!-- color_secondary_variant para noche -->
+        <item name="colorOnSecondary">#000000</item>
 
-    <!-- Backgrounds / Surfaces -->
-    <color name="color_background">#FFFFFF</color>
-    <color name="color_on_background">#121212</color>
-    <color name="color_surface">#F5F5F5</color>
-    <color name="color_on_surface">#121212</color>
+        <!-- Fondos / Superficies (noche) -->
+        <item name="android:colorBackground">#121212</item> <!-- color_background para noche -->
+        <item name="colorOnBackground">#FFFFFF</item> <!-- color_on_background para noche -->
+        <item name="colorSurface">#1E1E1E</item> <!-- color_surface para noche -->
+        <item name="colorOnSurface">#FFFFFF</item> <!-- color_on_surface para noche -->
 
-    <!-- Gradients -->
-    <color name="gradient_start">#5A3FFF</color>
-    <color name="gradient_end">#FF7F50</color>
+        <!-- Color de la barra de estado (noche) -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <!-- Otros atributos del tema si los necesitas -->
+    </style>
 </resources>

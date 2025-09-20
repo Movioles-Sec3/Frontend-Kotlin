@@ -1,20 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand Palette -->
-    <color name="color_primary">#8F7BFF</color>
-    <color name="color_primary_variant">#5A3FFF</color>
-    <color name="color_on_primary">#FFFFFF</color>
+    <!-- Base application theme (Modo Día). -->
+    <style name="Theme.TapToast" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Colores de la marca (día) -->
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorPrimaryVariant">@color/color_primary_variant</item>
+        <item name="colorOnPrimary">@color/color_on_primary</item>
 
-    <color name="color_secondary">#FF9E80</color>
-    <color name="color_secondary_variant">#FF7F50</color>
-    <color name="color_on_secondary">#000000</color>
+        <item name="colorSecondary">@color/color_secondary</item>
+        <item name="colorSecondaryVariant">@color/color_secondary_variant</item>
+        <item name="colorOnSecondary">@color/color_on_secondary</item>
 
-    <!-- Backgrounds / Surfaces -->
-    <color name="color_background">#121212</color>
-    <color name="color_on_background">#FFFFFF</color>
-    <color name="color_surface">#1E1E1E</color>
-    <color name="color_on_surface">#FFFFFF</color>
+        <!-- Fondos / Superficies (día) -->
+        <item name="android:colorBackground">@color/color_background</item>
+        <item name="colorOnBackground">@color/color_on_background</item>
+        <item name="colorSurface">@color/color_surface</item>
+        <item name="colorOnSurface">@color/color_on_surface</item>
 
-    <!-- Gradients -->
-    <color name="gradient_start">#8F7BFF</color>
-    <color name="gradient_end">#FF9E80</color>
+        <!-- Color de la barra de estado -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <!-- Otros atributos del tema si los necesitas -->
+    </style>
 </resources>

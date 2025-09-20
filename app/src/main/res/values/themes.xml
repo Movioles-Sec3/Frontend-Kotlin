@@ -17,6 +17,4 @@
     <!-- Gradients -->
     <color name="gradient_start">#5A3FFF</color>
     <color name="gradient_end">#FF7F50</color>
-
-    <style name="Theme.TapToast" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

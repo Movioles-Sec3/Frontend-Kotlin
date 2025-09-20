@@ -12,20 +12,45 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TapToast" >
 
-        <!-- Declaración de CategoryActivity, sin intent-filter por ahora -->
+        <!-- LoginActivity como actividad de lanzamiento -->
         <activity
-            android:name=".CategoryActivity"
-            android:exported="true" />
-
-        <!-- Declaración de MainActivity como la actividad de lanzamiento -->
-        <activity
-            android:name=".MainActivity"
+            android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- HomeActivity -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true" />
+
+        <!-- CategoryActivity -->
+        <activity
+            android:name=".CategoryActivity"
+            android:exported="true" />
+
+        <!-- ProductActivity -->
+        <activity
+            android:name=".ProductActivity"
+            android:exported="true" />
+
+        <!-- OrderSummaryActivity -->
+        <activity
+            android:name=".OrderSummaryActivity"
+            android:exported="true" />
+
+        <!-- OrderPickupActivity -->
+        <activity
+            android:name=".OrderPickupActivity"
+            android:exported="true" />
+
+        <!-- MainActivity (mantenemos por compatibilidad) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
 
     </application>
 

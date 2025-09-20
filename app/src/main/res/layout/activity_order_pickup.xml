@@ -5,13 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="24dp"
-    tools:context=".CategoryActivity">
+    tools:context=".OrderPickupActivity">
 
     <TextView
-        android:id="@+id/tv_category_title"
+        android:id="@+id/tv_order_pickup_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/categories_title"
+        android:text="@string/order_pickup_title"
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="@color/color_primary"
@@ -21,13 +21,13 @@
         android:layout_marginTop="48dp" />
 
     <TextView
-        android:id="@+id/tv_category_content"
+        android:id="@+id/tv_order_pickup_content"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/categories_content"
+        android:text="@string/order_pickup_content"
         android:textSize="18sp"
         android:textColor="@color/color_on_background"
-        app:layout_constraintTop_toBottomOf="@id/tv_category_title"
+        app:layout_constraintTop_toBottomOf="@id/tv_order_pickup_title"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="32dp" />

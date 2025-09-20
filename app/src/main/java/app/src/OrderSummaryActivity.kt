@@ -5,10 +5,10 @@ import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 
-class CategoryActivity : AppCompatActivity() {
+class OrderSummaryActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_category)
+        setContentView(R.layout.activity_order_summary)
         
         // Botón para volver al Home
         findViewById<Button>(R.id.btn_back_to_home).setOnClickListener {

@@ -1,3 +1,37 @@
 <resources>
     <string name="app_name">Tap&amp;Toast</string>
+    
+    <!-- Login Screen -->
+    <string name="login_title">Sign In</string>
+    <string name="username_hint">Username</string>
+    <string name="password_hint">Password</string>
+    <string name="login_button">Login</string>
+    
+    <!-- Home Screen -->
+    <string name="home_title">Home</string>
+    <string name="categories_button">Categories</string>
+    <string name="products_button">Products</string>
+    <string name="order_summary_button">Order Summary</string>
+    <string name="order_pickup_button">Order Pickup</string>
+    
+    <!-- Categories Screen -->
+    <string name="categories_title">Categories</string>
+    
+    <!-- Products Screen -->
+    <string name="products_title">Products</string>
+    
+    <!-- Order Summary Screen -->
+    <string name="order_summary_title">Order Summary</string>
+    
+    <!-- Order Pickup Screen -->
+    <string name="order_pickup_title">Order Pickup</string>
+    
+    <!-- Navigation -->
+    <string name="back_to_home">Back to Home</string>
+    
+    <!-- Content placeholders -->
+    <string name="categories_content">Categories content (Under development)</string>
+    <string name="products_content">Products content (Under development)</string>
+    <string name="order_summary_content">Order summary content (Under development)</string>
+    <string name="order_pickup_content">Order pickup content (Under development)</string>
 </resources>

@@ -1,16 +1,20 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.TapToast" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
-    </style>
+<resources>
+    <!-- Brand Palette -->
+    <color name="color_primary">#8F7BFF</color>
+    <color name="color_primary_variant">#5A3FFF</color>
+    <color name="color_on_primary">#FFFFFF</color>
+
+    <color name="color_secondary">#FF9E80</color>
+    <color name="color_secondary_variant">#FF7F50</color>
+    <color name="color_on_secondary">#000000</color>
+
+    <!-- Backgrounds / Surfaces -->
+    <color name="color_background">#121212</color>
+    <color name="color_on_background">#FFFFFF</color>
+    <color name="color_surface">#1E1E1E</color>
+    <color name="color_on_surface">#FFFFFF</color>
+
+    <!-- Gradients -->
+    <color name="gradient_start">#8F7BFF</color>
+    <color name="gradient_end">#FF9E80</color>
 </resources>

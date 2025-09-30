@@ -13,6 +13,9 @@
     <string name="products_button">Products</string>
     <string name="order_summary_button">Order Summary</string>
     <string name="order_pickup_button">Order Pickup</string>
+
+    <!-- Extra -->
+    <string name="empty"></string>
     
     <!-- Categories Screen -->
     <string name="categories_title">Categories</string>

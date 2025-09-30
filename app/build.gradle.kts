@@ -5,6 +5,9 @@ plugins {
 
 android {
     namespace = "app.src"
+
+    // Usa 35 o 36 según lo que tengas instalado en SDK Manager.
+    // Si no tienes 36, pon 35 en ambos.
     compileSdk = 36
 
     defaultConfig {
@@ -15,6 +18,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -25,21 +29,35 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug { /* puedes activar logs, etc. */ }
     }
+
+    buildFeatures {
+        viewBinding = true
+        // compose = false (por defecto)
+    }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // AGP 8.x requiere JDK 17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

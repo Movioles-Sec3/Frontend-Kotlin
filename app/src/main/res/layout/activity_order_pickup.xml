@@ -146,7 +146,7 @@
     <!-- Botón Volver -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnBackToHome"
-        style="@style/Widget.Material3.Button.Filled"
+        style="@style/Widget.Material3.Button"
         android:layout_width="0dp"
         android:layout_height="56dp"
         android:text="Volver al inicio"

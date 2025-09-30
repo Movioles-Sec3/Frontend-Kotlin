@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme (Modo Noche), hereda del tema base de día. -->
-    <style name="Theme.TapToast" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Colores de la marca (noche) -->
-        <item name="colorPrimary">#8F7BFF</item> <!-- color_primary para noche -->
-        <item name="colorPrimaryVariant">#5A3FFF</item> <!-- color_primary_variant para noche -->
-        <item name="colorOnPrimary">#FFFFFF</item>
+    <!-- Base application theme (Modo Día) con Material 3 -->
+    <style name="Theme.TapToast" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Colores de la marca (día) -->
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorOnPrimary">@color/color_on_primary</item>
 
-        <item name="colorSecondary">#FF9E80</item> <!-- color_secondary para noche -->
-        <item name="colorSecondaryVariant">#FF7F50</item> <!-- color_secondary_variant para noche -->
-        <item name="colorOnSecondary">#000000</item>
+        <!-- En M3, el "Variant" se mapea a "Container" -->
+        <item name="colorPrimaryContainer">@color/color_primary_variant</item>
 
-        <!-- Fondos / Superficies (noche) -->
-        <item name="android:colorBackground">#121212</item> <!-- color_background para noche -->
-        <item name="colorOnBackground">#FFFFFF</item> <!-- color_on_background para noche -->
-        <item name="colorSurface">#1E1E1E</item> <!-- color_surface para noche -->
-        <item name="colorOnSurface">#FFFFFF</item> <!-- color_on_surface para noche -->
+        <item name="colorSecondary">@color/color_secondary</item>
+        <item name="colorOnSecondary">@color/color_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/color_secondary_variant</item>
 
-        <!-- Color de la barra de estado (noche) -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Otros atributos del tema si los necesitas -->
+        <!-- Fondos / Superficies (día) -->
+        <item name="android:colorBackground">@color/color_background</item>
+        <item name="colorOnBackground">@color/color_on_background</item>
+        <item name="colorSurface">@color/color_surface</item>
+        <item name="colorOnSurface">@color/color_on_surface</item>
+
+        <!-- Status bar (en M3 se recomienda usar superficie + iconos oscuros en modo claro) -->
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

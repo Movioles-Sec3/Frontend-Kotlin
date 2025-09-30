@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme (Modo Día). -->
-    <style name="Theme.TapToast" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Colores de la marca (día) -->
-        <item name="colorPrimary">@color/color_primary</item>
-        <item name="colorPrimaryVariant">@color/color_primary_variant</item>
-        <item name="colorOnPrimary">@color/color_on_primary</item>
+    <!-- Base application theme (Modo Noche) con Material 3 -->
+    <style name="Theme.TapToast" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Colores de la marca (noche) -->
+        <item name="colorPrimary">#8F7BFF</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
 
-        <item name="colorSecondary">@color/color_secondary</item>
-        <item name="colorSecondaryVariant">@color/color_secondary_variant</item>
-        <item name="colorOnSecondary">@color/color_on_secondary</item>
+        <!-- En M3, usa "Container" en vez de "Variant" -->
+        <item name="colorPrimaryContainer">#5A3FFF</item>
 
-        <!-- Fondos / Superficies (día) -->
-        <item name="android:colorBackground">@color/color_background</item>
-        <item name="colorOnBackground">@color/color_on_background</item>
-        <item name="colorSurface">@color/color_surface</item>
-        <item name="colorOnSurface">@color/color_on_surface</item>
+        <item name="colorSecondary">#FF9E80</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorSecondaryContainer">#FF7F50</item>
 
-        <!-- Color de la barra de estado -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Otros atributos del tema si los necesitas -->
+        <!-- Fondos / Superficies (noche) -->
+        <item name="android:colorBackground">#121212</item>
+        <item name="colorOnBackground">#FFFFFF</item>
+        <item name="colorSurface">#1E1E1E</item>
+        <item name="colorOnSurface">#FFFFFF</item>
+
+        <!-- Status bar (superficie y sin iconos claros en noche) -->
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

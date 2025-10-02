@@ -1,12 +1,16 @@
 <resources>
     <string name="app_name">Tap&amp;Toast</string>
-    
-    <!-- Login Screen -->
-    <string name="login_title">Sign In</string>
-    <string name="username_hint">Username</string>
+
+    <!-- Login -->
+    <string name="login_title">Welcome</string>
+    <string name="username_hint">Email</string>
     <string name="password_hint">Password</string>
-    <string name="login_button">Login</string>
-    
+    <string name="login_button">Sign in</string>
+    <string name="cd_login_button">Sign-in button</string>
+    <string name="err_user_required">Email is required</string>
+    <string name="err_pass_min">Password must be at least 6 characters</string>
+    <string name="err_bad_credentials">Invalid credentials</string>
+
     <!-- Home Screen -->
     <string name="home_title">Home</string>
     <string name="categories_button">Categories</string>
@@ -14,24 +18,37 @@
     <string name="order_summary_button">Order Summary</string>
     <string name="order_pickup_button">Order Pickup</string>
 
-    <!-- Extra -->
+    <!-- Misc -->
     <string name="empty"></string>
-    
+
     <!-- Categories Screen -->
     <string name="categories_title">Categories</string>
-    
+
     <!-- Products Screen -->
     <string name="products_title">Products</string>
-    
+
     <!-- Order Summary Screen -->
     <string name="order_summary_title">Order Summary</string>
-    
+
     <!-- Order Pickup Screen -->
-    <string name="order_pickup_title">Order Pickup</string>
-    
+    <string name="pickup_title_bar">Pick up your order</string>
+    <string name="pickup_title">Your order is ready!</string>
+    <string name="pickup_subtitle">Go to the pickup point and show your code.</string>
+    <string name="pickup_code_label">Pickup code</string>
+    <string name="pickup_share">Share code</string>
+    <string name="pickup_back_home">Back to Home</string>
+    <string name="cd_pickup_code">Pickup code</string>
+    <string name="cd_store_icon">Pickup point icon</string>
+    <string name="cd_clock_icon">Schedule icon</string>
+    <string name="pickup_point_sample">Pickup point: Main Bar</string>
+    <string name="pickup_hours_sample">Hours: Today, 18:00–02:00</string>
+    <string name="share_via">Share via</string>
+    <string name="share_pickup_code">My pickup code: %1$s</string>
+    <string name="copied">Copied to clipboard</string>
+
     <!-- Navigation -->
     <string name="back_to_home">Back to Home</string>
-    
+
     <!-- Content placeholders -->
     <string name="categories_content">Categories content (Under development)</string>
     <string name="products_content">Products content (Under development)</string>

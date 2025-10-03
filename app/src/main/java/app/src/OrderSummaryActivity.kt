@@ -9,17 +9,23 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.CartAdapter
 import app.src.data.api.ApiClient
 import app.src.data.models.DetalleCompraRequest
+import app.src.data.repositories.Result
+import app.src.data.repositories.UsuarioRepository
 import app.src.utils.CartManager
 import app.src.utils.SessionManager
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 class OrderSummaryActivity : AppCompatActivity() {
 
     private val viewModel: CompraViewModel by viewModels()
+    private val usuarioRepo = UsuarioRepository()
     private lateinit var adapter: CartAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
@@ -33,13 +39,13 @@ class OrderSummaryActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_order_summary)
 
-        // Cargar token de sesión
+        // Load session token
         val token = SessionManager.getToken(this)
         if (token != null) {
             ApiClient.setToken(token)
         }
 
-        // Inicializar vistas
+        // Initialize views
         recyclerView = findViewById(R.id.rv_cart_items)
         progressBar = findViewById(R.id.progress_bar)
         tvEmptyCart = findViewById(R.id.tv_empty_cart)
@@ -48,7 +54,7 @@ class OrderSummaryActivity : AppCompatActivity() {
         btnCheckout = findViewById(R.id.btn_checkout)
         btnBackToHome = findViewById(R.id.btn_back_to_home)
 
-        // Configurar RecyclerView
+        // Setup RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = CartAdapter(CartManager.getItems()) { productoId ->
             CartManager.removeProduct(productoId)
@@ -56,10 +62,10 @@ class OrderSummaryActivity : AppCompatActivity() {
         }
         recyclerView.adapter = adapter
 
-        // Actualizar display inicial
+        // Update initial display
         updateCartDisplay()
 
-        // Observer del ViewModel
+        // ViewModel Observer
         viewModel.uiState.observe(this) { state ->
             when (state) {
                 is CompraUiState.Loading -> {
@@ -70,29 +76,42 @@ class OrderSummaryActivity : AppCompatActivity() {
                     progressBar.visibility = View.GONE
                     btnCheckout.isEnabled = true
 
-                    // Limpiar carrito
+                    // Clear cart
                     CartManager.clear()
 
-                    // Navegar a OrderPickupActivity con el código QR
-                    val compra = state.compra
-                    val qrCode = compra.qr?.codigoQrHash
+                    // Update user balance from API
+                    updateUserBalance {
+                        // Navigate to OrderPickupActivity with QR code
+                        val compra = state.compra
+                        val qrCode = compra.qr?.codigoQrHash
 
-                    if (qrCode != null) {
-                        val intent = Intent(this, OrderPickupActivity::class.java)
-                        intent.putExtra("qr_code", qrCode)
-                        intent.putExtra("compra_id", compra.id)
-                        intent.putExtra("total", compra.total)
-                        startActivity(intent)
-                        finish()
-                    } else {
-                        Toast.makeText(this, "Order created successfully", Toast.LENGTH_SHORT).show()
-                        finish()
+                        if (qrCode != null) {
+                            val intent = Intent(this, OrderPickupActivity::class.java)
+                            intent.putExtra("qr_code", qrCode)
+                            intent.putExtra("compra_id", compra.id)
+                            intent.putExtra("total", compra.total)
+                            intent.putExtra("estado", compra.estado.name)
+                            startActivity(intent)
+                            finish()
+                        } else {
+                            Toast.makeText(this, "Order created successfully but no QR code was generated", Toast.LENGTH_LONG).show()
+                            finish()
+                        }
                     }
                 }
                 is CompraUiState.Error -> {
                     progressBar.visibility = View.GONE
                     btnCheckout.isEnabled = true
-                    Toast.makeText(this, "Error: ${state.message}", Toast.LENGTH_LONG).show()
+
+                    val errorMessage = when {
+                        state.message.contains("Saldo insuficiente", ignoreCase = true) ->
+                            "Insufficient balance. Please recharge your account."
+                        state.message.contains("disponible", ignoreCase = true) ->
+                            "One or more products are not available."
+                        else -> "Error: ${state.message}"
+                    }
+
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                 }
                 else -> {
                     progressBar.visibility = View.GONE
@@ -107,20 +126,20 @@ class OrderSummaryActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Verificar saldo del usuario
+            // Verify user balance
             val userSaldo = SessionManager.getUserSaldo(this)
             val total = CartManager.getTotal()
 
             if (userSaldo < total) {
                 Toast.makeText(
                     this,
-                    "Insufficient balance. Please recharge your account.",
+                    "Insufficient balance. Please recharge your account.\nCurrent balance: ${String.format(Locale.US, "$%.2f", userSaldo)}\nTotal: ${String.format(Locale.US, "$%.2f", total)}",
                     Toast.LENGTH_LONG
                 ).show()
                 return@setOnClickListener
             }
 
-            // Crear lista de productos para la compra
+            // Create products list for the purchase
             val productos = CartManager.getItems().map { item ->
                 DetalleCompraRequest(
                     idProducto = item.producto.id,
@@ -128,7 +147,7 @@ class OrderSummaryActivity : AppCompatActivity() {
                 )
             }
 
-            // Crear compra
+            // Create purchase
             viewModel.crearCompra(productos)
         }
 
@@ -154,7 +173,38 @@ class OrderSummaryActivity : AppCompatActivity() {
         }
 
         val total = CartManager.getTotal()
-        tvSubtotal.text = "$${String.format("%.2f", total)}"
-        tvTotal.text = "$${String.format("%.2f", total)}"
+        tvSubtotal.text = String.format(Locale.US, "$%.2f", total)
+        tvTotal.text = String.format(Locale.US, "$%.2f", total)
+    }
+
+    private fun updateUserBalance(onComplete: () -> Unit) {
+        lifecycleScope.launch {
+            when (val result = usuarioRepo.obtenerPerfil()) {
+                is Result.Success -> {
+                    val usuario = result.data
+                    // Update session with new balance
+                    SessionManager.saveUserData(
+                        this@OrderSummaryActivity,
+                        usuario.id,
+                        usuario.nombre,
+                        usuario.email,
+                        usuario.saldo
+                    )
+                    onComplete()
+                }
+                is Result.Error -> {
+                    // If we can't get the updated balance, still proceed
+                    Toast.makeText(
+                        this@OrderSummaryActivity,
+                        "Warning: Could not update balance",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    onComplete()
+                }
+                else -> {
+                    onComplete()
+                }
+            }
+        }
     }
 }

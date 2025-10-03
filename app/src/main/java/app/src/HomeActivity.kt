@@ -14,6 +14,7 @@ import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
 import app.src.utils.SessionManager
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class HomeActivity : AppCompatActivity() {
 
@@ -23,26 +24,25 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
         
-        // Cargar token de sesión
+        // Load session token
         val token = SessionManager.getToken(this)
         if (token != null) {
             ApiClient.setToken(token)
         }
 
-        // Mostrar información del usuario
+        // Display user information
         val userName = SessionManager.getUserName(this)
         val userSaldo = SessionManager.getUserSaldo(this)
 
-        // Buscar TextView en el layout (si existe)
         findViewById<TextView>(R.id.tv_welcome)?.text = "Hello, $userName"
-        findViewById<TextView>(R.id.tv_saldo)?.text = "Balance: $${String.format("%.2f", userSaldo)}"
+        findViewById<TextView>(R.id.tv_saldo)?.text = String.format(Locale.US, "Balance: $%.2f", userSaldo)
 
-        // Botón de recarga de saldo
+        // Recharge balance button
         findViewById<Button>(R.id.btn_recharge)?.setOnClickListener {
             showRechargeDialog()
         }
 
-        // Configurar navegación a cada vista
+        // Navigation to each view
         findViewById<Button>(R.id.btn_categories).setOnClickListener {
             startActivity(Intent(this, CategoryActivity::class.java))
         }
@@ -55,18 +55,18 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this, OrderSummaryActivity::class.java))
         }
         
-        findViewById<Button>(R.id.btn_order_pickup).setOnClickListener {
-            startActivity(Intent(this, OrderPickupActivity::class.java))
+        // Order Pickup button - can be used to view order history
+        findViewById<Button>(R.id.btn_order_pickup)?.setOnClickListener {
+            startActivity(Intent(this, OrderHistoryActivity::class.java))
         }
 
-        // Botón de logout (si existe en el layout)
+        // Logout button
         findViewById<Button>(R.id.btn_logout)?.setOnClickListener {
             logout()
         }
     }
 
     private fun showRechargeDialog() {
-        val dialogView = layoutInflater.inflate(android.R.layout.simple_list_item_1, null)
         val input = EditText(this).apply {
             hint = "Enter amount"
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or
@@ -97,7 +97,7 @@ class HomeActivity : AppCompatActivity() {
             when (val result = usuarioRepo.recargarSaldo(amount)) {
                 is Result.Success -> {
                     val usuario = result.data
-                    // Actualizar sesión local
+                    // Update local session
                     SessionManager.saveUserData(
                         this@HomeActivity,
                         usuario.id,
@@ -105,13 +105,13 @@ class HomeActivity : AppCompatActivity() {
                         usuario.email,
                         usuario.saldo
                     )
-                    // Actualizar UI
+                    // Update UI
                     findViewById<TextView>(R.id.tv_saldo)?.text =
-                        "Balance: $${String.format("%.2f", usuario.saldo)}"
+                        String.format(Locale.US, "Balance: $%.2f", usuario.saldo)
 
                     Toast.makeText(
                         this@HomeActivity,
-                        "Balance recharged successfully! New balance: $${String.format("%.2f", usuario.saldo)}",
+                        String.format(Locale.US, "Balance recharged successfully! New balance: $%.2f", usuario.saldo),
                         Toast.LENGTH_LONG
                     ).show()
                 }

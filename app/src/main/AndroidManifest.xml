@@ -57,6 +57,16 @@
             android:name=".OrderPickupActivity"
             android:exported="true" />
 
+        <!-- OrderHistoryActivity -->
+        <activity
+            android:name=".OrderHistoryActivity"
+            android:exported="false" />
+
+        <!-- StaffValidationActivity -->
+        <activity
+            android:name=".StaffValidationActivity"
+            android:exported="false" />
+
         <!-- MainActivity (mantenemos por compatibilidad) -->
         <activity
             android:name=".MainActivity"

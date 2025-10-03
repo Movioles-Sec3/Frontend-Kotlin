@@ -4,13 +4,19 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import app.src.data.api.ApiClient
+import app.src.data.models.Compra
 import app.src.data.models.EstadoCompra
 import app.src.utils.SessionManager
+import com.google.android.material.card.MaterialCardView
 import java.util.Locale
 
 class OrderPickupActivity : AppCompatActivity() {
@@ -23,6 +29,16 @@ class OrderPickupActivity : AppCompatActivity() {
     private lateinit var btnBackToHistory: Button
     private lateinit var btnBackToHome: Button
 
+    // Botones de control de estado
+    private lateinit var btnEnPreparacion: Button
+    private lateinit var btnListo: Button
+    private lateinit var btnEscanearQR: Button
+    private lateinit var cardEstadoControl: MaterialCardView
+    private lateinit var progressBar: ProgressBar
+
+    private val viewModel: OrderPickupViewModel by viewModels()
+    private var currentCompra: Compra? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_order_pickup)
@@ -33,7 +49,12 @@ class OrderPickupActivity : AppCompatActivity() {
             ApiClient.setToken(token)
         }
 
-        // Initialize views
+        initializeViews()
+        setupObservers()
+        loadCompraData()
+    }
+
+    private fun initializeViews() {
         tvQrCode = findViewById(R.id.tv_qr_code)
         tvCompraId = findViewById(R.id.tv_compra_id)
         tvTotal = findViewById(R.id.tv_total)
@@ -42,31 +63,21 @@ class OrderPickupActivity : AppCompatActivity() {
         btnBackToHistory = findViewById(R.id.btn_back_to_history)
         btnBackToHome = findViewById(R.id.btn_back_to_home)
 
-        // Get purchase data from Intent
-        val qrCode = intent.getStringExtra("qr_code") ?: ""
-        val compraId = intent.getIntExtra("compra_id", 0)
-        val total = intent.getDoubleExtra("total", 0.0)
-        val estadoStr = intent.getStringExtra("estado") ?: "PAGADO"
+        // Botones de control de estado
+        btnEnPreparacion = findViewById(R.id.btn_en_preparacion)
+        btnListo = findViewById(R.id.btn_listo)
+        btnEscanearQR = findViewById(R.id.btn_escanear_qr)
+        cardEstadoControl = findViewById(R.id.card_estado_control)
+        progressBar = findViewById(R.id.progress_bar)
 
-        // Display data
-        tvQrCode.text = qrCode
-        tvCompraId.text = String.format(Locale.US, "Order #%d", compraId)
-        tvTotal.text = String.format(Locale.US, "$%.2f", total)
+        setupClickListeners()
+    }
 
-        // Set status with color
-        val estado = try {
-            EstadoCompra.valueOf(estadoStr)
-        } catch (e: Exception) {
-            EstadoCompra.PAGADO
-        }
-
-        tvEstado.text = getEstadoDisplayText(estado)
-        tvEstado.setTextColor(getEstadoColor(estado))
-
+    private fun setupClickListeners() {
         // Copy QR code to clipboard
         btnCopyCode.setOnClickListener {
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("QR Code", qrCode)
+            val clip = ClipData.newPlainText("QR Code", tvQrCode.text.toString())
             clipboard.setPrimaryClip(clip)
             Toast.makeText(this, "QR Code copied to clipboard", Toast.LENGTH_SHORT).show()
         }
@@ -85,6 +96,183 @@ class OrderPickupActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+
+        // Botón para pasar a EN_PREPARACION
+        btnEnPreparacion.setOnClickListener {
+            currentCompra?.let { compra ->
+                confirmarCambioEstado(compra.id, EstadoCompra.EN_PREPARACION, "In Preparation")
+            }
+        }
+
+        // Botón para pasar a LISTO
+        btnListo.setOnClickListener {
+            currentCompra?.let { compra ->
+                confirmarCambioEstado(compra.id, EstadoCompra.LISTO, "Ready")
+            }
+        }
+
+        // Botón para escanear QR (pasar a ENTREGADO)
+        btnEscanearQR.setOnClickListener {
+            currentCompra?.let { compra ->
+                compra.qr?.let { qr ->
+                    confirmarEscaneoQR(qr.codigoQrHash)
+                }
+            }
+        }
+    }
+
+    private fun setupObservers() {
+        viewModel.state.observe(this) { state ->
+            when (state) {
+                is OrderPickupState.Loading -> {
+                    showLoading(true)
+                }
+                is OrderPickupState.Success -> {
+                    showLoading(false)
+                    currentCompra = state.compra
+                    updateUI(state.compra)
+                    Toast.makeText(this, "Status updated successfully", Toast.LENGTH_SHORT).show()
+                }
+                is OrderPickupState.QRScanned -> {
+                    showLoading(false)
+                    mostrarResultadoQR(state.response.mensaje, state.response.cliente, state.response.total)
+                }
+                is OrderPickupState.Error -> {
+                    showLoading(false)
+                    Toast.makeText(this, "Error: ${state.message}", Toast.LENGTH_LONG).show()
+                }
+                is OrderPickupState.Idle -> {
+                    showLoading(false)
+                }
+            }
+        }
+    }
+
+    private fun loadCompraData() {
+        // Get purchase data from Intent
+        val qrCode = intent.getStringExtra("qr_code") ?: ""
+        val compraId = intent.getIntExtra("compra_id", 0)
+        val total = intent.getDoubleExtra("total", 0.0)
+        val estadoStr = intent.getStringExtra("estado") ?: "PAGADO"
+
+        // Crear objeto Compra temporal para la UI
+        val estado = try {
+            EstadoCompra.valueOf(estadoStr)
+        } catch (e: Exception) {
+            EstadoCompra.PAGADO
+        }
+
+        // Crear un objeto Compra simplificado
+        val compra = Compra(
+            id = compraId,
+            fechaHora = "",
+            total = total,
+            estado = estado,
+            detalles = emptyList(),
+            qr = if (qrCode.isNotEmpty()) {
+                app.src.data.models.QR(
+                    codigoQrHash = qrCode,
+                    estado = app.src.data.models.EstadoQR.ACTIVO
+                )
+            } else null
+        )
+
+        currentCompra = compra
+        viewModel.loadCompra(compra)
+        updateUI(compra)
+    }
+
+    private fun updateUI(compra: Compra) {
+        // Display basic data
+        tvQrCode.text = compra.qr?.codigoQrHash ?: "No QR"
+        tvCompraId.text = String.format(Locale.US, "Order #%d", compra.id)
+        tvTotal.text = String.format(Locale.US, "$%.0f", compra.total)
+
+        // Set status with color
+        tvEstado.text = getEstadoDisplayText(compra.estado)
+        tvEstado.setTextColor(getEstadoColor(compra.estado))
+
+        // Actualizar visibilidad de botones según el estado actual
+        updateButtonsVisibility(compra.estado)
+    }
+
+    private fun updateButtonsVisibility(estado: EstadoCompra) {
+        // Resetear visibilidad
+        btnEnPreparacion.visibility = View.GONE
+        btnListo.visibility = View.GONE
+        btnEscanearQR.visibility = View.GONE
+
+        when (estado) {
+            EstadoCompra.PAGADO -> {
+                btnEnPreparacion.visibility = View.VISIBLE
+                cardEstadoControl.visibility = View.VISIBLE
+            }
+            EstadoCompra.EN_PREPARACION -> {
+                btnListo.visibility = View.VISIBLE
+                cardEstadoControl.visibility = View.VISIBLE
+            }
+            EstadoCompra.LISTO -> {
+                btnEscanearQR.visibility = View.VISIBLE
+                cardEstadoControl.visibility = View.VISIBLE
+            }
+            EstadoCompra.ENTREGADO -> {
+                cardEstadoControl.visibility = View.GONE
+            }
+            else -> {
+                cardEstadoControl.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun confirmarCambioEstado(compraId: Int, nuevoEstado: EstadoCompra, nombreEstado: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Change Status")
+            .setMessage("Do you want to change the order status to '$nombreEstado'?")
+            .setPositiveButton("Yes") { _, _ ->
+                viewModel.actualizarEstado(compraId, nuevoEstado)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmarEscaneoQR(codigoQrHash: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Scan QR")
+            .setMessage("Do you confirm the delivery of this order to the customer?")
+            .setPositiveButton("Yes, Deliver") { _, _ ->
+                viewModel.escanearQR(codigoQrHash)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun mostrarResultadoQR(mensaje: String, cliente: String, total: Double) {
+        AlertDialog.Builder(this)
+            .setTitle("✅ Order Delivered")
+            .setMessage(
+                "$mensaje\n\n" +
+                "Customer: $cliente\n" +
+                "Total: $${String.format(Locale.US, "%.0f", total)}"
+            )
+            .setPositiveButton("OK") { _, _ ->
+                // Actualizar UI a estado ENTREGADO
+                currentCompra?.let { compra ->
+                    val compraActualizada = compra.copy(estado = EstadoCompra.ENTREGADO)
+                    currentCompra = compraActualizada
+                    updateUI(compraActualizada)
+                }
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun showLoading(show: Boolean) {
+        progressBar.visibility = if (show) View.VISIBLE else View.GONE
+
+        // Deshabilitar botones mientras carga
+        btnEnPreparacion.isEnabled = !show
+        btnListo.isEnabled = !show
+        btnEscanearQR.isEnabled = !show
     }
 
     private fun getEstadoDisplayText(estado: EstadoCompra): String {

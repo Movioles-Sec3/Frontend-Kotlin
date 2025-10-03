@@ -55,6 +55,7 @@
     <string name="cd_pickup_code">Pickup code</string>
     <string name="cd_store_icon">Pickup point icon</string>
     <string name="cd_clock_icon">Schedule icon</string>
+    <string name="success_icon">Success icon</string>
     <string name="pickup_point_sample">Pickup point: Main Bar</string>
     <string name="pickup_hours_sample">Hours: Today, 18:00–02:00</string>
     <string name="share_via">Share via</string>

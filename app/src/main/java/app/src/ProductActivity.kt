@@ -113,11 +113,19 @@ class ProductActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Botón para volver al Home
+        // Botón para volver al Home o a la Categoría
         findViewById<Button>(R.id.btn_back_to_home).setOnClickListener {
-            val intent = Intent(this, HomeActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-            startActivity(intent)
+            if (categoryId != -1) {
+                // Vino de una categoría, volver a Categoría
+                val intent = Intent(this, CategoryActivity::class.java)
+                startActivity(intent)
+                finish()
+            } else {
+                // Vino del menú principal, volver a Home
+                val intent = Intent(this, HomeActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                startActivity(intent)
+            }
         }
 
         // Actualizar badge inicial

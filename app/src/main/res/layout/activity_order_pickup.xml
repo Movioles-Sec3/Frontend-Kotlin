@@ -154,6 +154,15 @@
         android:text="Copy Code"
         android:layout_marginBottom="8dp" />
 
+    <!-- Back to Order History Button -->
+    <Button
+        android:id="@+id/btn_back_to_history"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View Order History"
+        android:layout_marginBottom="8dp" />
+
     <!-- Back to Home Button -->
     <Button
         android:id="@+id/btn_back_to_home"

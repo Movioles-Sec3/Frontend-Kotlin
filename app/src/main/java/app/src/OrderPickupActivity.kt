@@ -20,6 +20,7 @@ class OrderPickupActivity : AppCompatActivity() {
     private lateinit var tvTotal: TextView
     private lateinit var tvEstado: TextView
     private lateinit var btnCopyCode: Button
+    private lateinit var btnBackToHistory: Button
     private lateinit var btnBackToHome: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +39,7 @@ class OrderPickupActivity : AppCompatActivity() {
         tvTotal = findViewById(R.id.tv_total)
         tvEstado = findViewById(R.id.tv_estado)
         btnCopyCode = findViewById(R.id.btn_copy_code)
+        btnBackToHistory = findViewById(R.id.btn_back_to_history)
         btnBackToHome = findViewById(R.id.btn_back_to_home)
 
         // Get purchase data from Intent
@@ -69,6 +71,14 @@ class OrderPickupActivity : AppCompatActivity() {
             Toast.makeText(this, "QR Code copied to clipboard", Toast.LENGTH_SHORT).show()
         }
 
+        // Back to Order History button
+        btnBackToHistory.setOnClickListener {
+            val intent = Intent(this, OrderHistoryActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
+
+        // Back to Home button
         btnBackToHome.setOnClickListener {
             val intent = Intent(this, HomeActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP

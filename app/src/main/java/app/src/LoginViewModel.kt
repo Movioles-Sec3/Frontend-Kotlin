@@ -2,8 +2,8 @@ package app.src
 
 import androidx.annotation.StringRes
 import androidx.lifecycle.*
+import app.src.data.repositories.Result
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed class LoginUiState {
@@ -39,13 +39,17 @@ class LoginViewModel(private val repo: AuthRepository) : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.postValue(LoginUiState.Loading)
-            // Simula red
-            delay(600)
-            val ok = repo.login(user, pass)
-            if (ok) {
-                _uiState.postValue(LoginUiState.Success)
-            } else {
-                _uiState.postValue(LoginUiState.Error(message = R.string.err_bad_credentials))
+
+            when (val result = repo.login(user, pass)) {
+                is Result.Success -> {
+                    _uiState.postValue(LoginUiState.Success)
+                }
+                is Result.Error -> {
+                    _uiState.postValue(LoginUiState.Error(message = R.string.err_bad_credentials))
+                }
+                else -> {
+                    _uiState.postValue(LoginUiState.Error(message = R.string.err_bad_credentials))
+                }
             }
         }
     }

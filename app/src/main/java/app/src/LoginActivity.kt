@@ -10,7 +10,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import app.src.databinding.ActivityLoginBinding
+import app.src.data.api.ApiClient
+import app.src.data.repositories.UsuarioRepository
+import app.src.data.repositories.Result
+import app.src.utils.SessionManager
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
@@ -18,10 +24,20 @@ class LoginActivity : AppCompatActivity() {
     private val vm: LoginViewModel by viewModels {
         LoginViewModel.factory(AuthRepository())
     }
+    private val usuarioRepo = UsuarioRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Verificar si ya hay sesión activa
+        if (SessionManager.isLoggedIn(this)) {
+            val token = SessionManager.getToken(this)
+            ApiClient.setToken(token)
+            navigateToHome()
+            return
+        }
+
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -41,6 +57,11 @@ class LoginActivity : AppCompatActivity() {
 
         binding.btnLogin.setOnClickListener { attemptLogin() }
 
+        // Botón para ir a registro
+        binding.btnRegister.setOnClickListener {
+            startActivity(Intent(this, RegisterActivity::class.java))
+        }
+
         // Observers
         vm.uiState.observe(this) { state ->
             binding.progress.isVisible = state is LoginUiState.Loading
@@ -58,9 +79,14 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
                 is LoginUiState.Success -> {
-                    // Navegación a Home
-                    startActivity(Intent(this, HomeActivity::class.java))
-                    finish()
+                    // Guardar token y obtener datos del usuario
+                    val token = ApiClient.getToken()
+                    if (token != null) {
+                        SessionManager.saveToken(this, token)
+                        obtenerDatosUsuario()
+                    } else {
+                        navigateToHome()
+                    }
                 }
             }
         }
@@ -70,6 +96,33 @@ class LoginActivity : AppCompatActivity() {
         binding.tilUsername.error = null
         binding.tilPassword.error = null
         vm.login()
+    }
+
+    private fun obtenerDatosUsuario() {
+        lifecycleScope.launch {
+            when (val result = usuarioRepo.obtenerPerfil()) {
+                is Result.Success -> {
+                    val usuario = result.data
+                    SessionManager.saveUserData(
+                        this@LoginActivity,
+                        usuario.id,
+                        usuario.nombre,
+                        usuario.email,
+                        usuario.saldo
+                    )
+                    navigateToHome()
+                }
+                else -> {
+                    // Si falla obtener perfil, igual navegamos
+                    navigateToHome()
+                }
+            }
+        }
+    }
+
+    private fun navigateToHome() {
+        startActivity(Intent(this, HomeActivity::class.java))
+        finish()
     }
 
     private fun fieldWatcher(onChange: (String) -> Unit) = object : TextWatcher {

@@ -6,10 +6,25 @@
     <string name="username_hint">Email</string>
     <string name="password_hint">Password</string>
     <string name="login_button">Sign in</string>
+    <string name="register_button">Create Account</string>
     <string name="cd_login_button">Sign-in button</string>
     <string name="err_user_required">Email is required</string>
     <string name="err_pass_min">Password must be at least 6 characters</string>
     <string name="err_bad_credentials">Invalid credentials</string>
+
+    <!-- Register -->
+    <string name="register_title">Create Account</string>
+    <string name="name_hint">Full Name</string>
+    <string name="email_hint">Email</string>
+    <string name="password_confirm_hint">Confirm Password</string>
+    <string name="back_to_login">Already have an account? Sign in</string>
+    <string name="err_name_required">Name is required</string>
+    <string name="err_email_required">Email is required</string>
+    <string name="err_email_invalid">Invalid email format</string>
+    <string name="err_password_required">Password is required</string>
+    <string name="err_password_mismatch">Passwords do not match</string>
+    <string name="register_success">Account created successfully!</string>
+    <string name="register_error">Error creating account</string>
 
     <!-- Home Screen -->
     <string name="home_title">Home</string>

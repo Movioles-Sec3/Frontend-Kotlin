@@ -82,19 +82,18 @@
                     android:textColor="@color/color_primary"
                     android:layout_marginTop="12dp" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:id="@+id/tv_home_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:text="@string/home_title"
-            android:textSize="28sp"
+            android:textColor="@android:color/white"
+            android:textSize="32sp"
             android:textStyle="bold"
-            android:textColor="@color/color_primary"
-            android:layout_marginBottom="16dp" />
+            android:fontFamily="sans-serif-medium"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_marginTop="32dp" />
 
-        <!-- Primera fila de botones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -111,16 +110,14 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
 
-                <Button
+                <ImageButton
                     android:id="@+id/btn_categories"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="📂\n\nCategories"
-                    android:textColor="@color/color_on_primary"
-                    android:backgroundTint="@android:color/transparent"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    style="?attr/borderlessButtonStyle" />
+                    android:src="@drawable/bottom_categories_background"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Categorías"
+                    android:scaleType="centerCrop" />
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
@@ -132,16 +129,14 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
 
-                <Button
+                <ImageButton
                     android:id="@+id/btn_products"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="🛍️\n\nProducts"
-                    android:textColor="@color/color_on_secondary"
-                    android:backgroundTint="@android:color/transparent"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    style="?attr/borderlessButtonStyle" />
+                    android:src="@drawable/bottom_products_background"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Productos"
+                    android:scaleType="centerCrop" />
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
@@ -161,16 +156,14 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
 
-                <Button
+                <ImageButton
                     android:id="@+id/btn_order_summary"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="🛒\n\nShopping\nCart"
-                    android:textColor="@color/color_on_primary"
-                    android:backgroundTint="@android:color/transparent"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    style="?attr/borderlessButtonStyle" />
+                    android:src="@drawable/bottom_shopping_cart_background"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Carrito"
+                    android:scaleType="centerCrop" />
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
@@ -182,16 +175,14 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
 
-                <Button
+                <ImageButton
                     android:id="@+id/btn_order_pickup"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="📋\n\nOrder\nHistory"
-                    android:textColor="@color/color_on_primary"
-                    android:backgroundTint="@android:color/transparent"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    style="?attr/borderlessButtonStyle" />
+                    android:src="@drawable/bottom_order_history_background"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Historial de pedidos"
+                    android:scaleType="centerCrop" />
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 

@@ -99,11 +99,11 @@ class OrderPickupActivity : AppCompatActivity() {
 
     private fun getEstadoColor(estado: EstadoCompra): Int {
         return when (estado) {
-            EstadoCompra.PAGADO -> getColor(android.R.color.holo_blue_dark)
-            EstadoCompra.EN_PREPARACION -> getColor(android.R.color.holo_orange_dark)
-            EstadoCompra.LISTO -> getColor(android.R.color.holo_green_dark)
-            EstadoCompra.ENTREGADO -> getColor(android.R.color.holo_green_light)
-            else -> getColor(android.R.color.darker_gray)
+            EstadoCompra.PAGADO -> getColor(R.color.status_paid)
+            EstadoCompra.EN_PREPARACION -> getColor(R.color.status_preparing)
+            EstadoCompra.LISTO -> getColor(R.color.status_ready)
+            EstadoCompra.ENTREGADO -> getColor(R.color.status_delivered)
+            else -> getColor(R.color.text_secondary)
         }
     }
 }

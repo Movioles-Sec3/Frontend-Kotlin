@@ -73,12 +73,11 @@ class OrderHistoryAdapter(
 
     private fun getEstadoColor(context: android.content.Context, estado: EstadoCompra): Int {
         return when (estado) {
-            EstadoCompra.PAGADO -> context.getColor(android.R.color.holo_blue_dark)
-            EstadoCompra.EN_PREPARACION -> context.getColor(android.R.color.holo_orange_dark)
-            EstadoCompra.LISTO -> context.getColor(android.R.color.holo_green_dark)
-            EstadoCompra.ENTREGADO -> context.getColor(android.R.color.holo_green_light)
-            else -> context.getColor(android.R.color.darker_gray)
+            EstadoCompra.PAGADO -> context.getColor(R.color.status_paid)
+            EstadoCompra.EN_PREPARACION -> context.getColor(R.color.status_preparing)
+            EstadoCompra.LISTO -> context.getColor(R.color.status_ready)
+            EstadoCompra.ENTREGADO -> context.getColor(R.color.status_delivered)
+            else -> context.getColor(R.color.text_secondary)
         }
     }
 }
-

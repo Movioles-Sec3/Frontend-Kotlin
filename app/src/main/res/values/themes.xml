@@ -1,26 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme (Modo Día) con Material 3 -->
+    <!-- ============================================ -->
+    <!-- TEMA BASE - MATERIAL 3 CON AZUL CLARO -->
+    <!-- ============================================ -->
     <style name="Theme.TapToast" parent="Theme.Material3.Light.NoActionBar">
-        <!-- Colores de la marca (día) -->
+        <!-- Primary Colors -->
         <item name="colorPrimary">@color/color_primary</item>
         <item name="colorOnPrimary">@color/color_on_primary</item>
+        <item name="colorPrimaryContainer">@color/color_primary_light</item>
+        <item name="colorOnPrimaryContainer">@color/color_primary_variant</item>
 
-        <!-- En M3, el "Variant" se mapea a "Container" -->
-        <item name="colorPrimaryContainer">@color/color_primary_variant</item>
-
+        <!-- Secondary Colors -->
         <item name="colorSecondary">@color/color_secondary</item>
         <item name="colorOnSecondary">@color/color_on_secondary</item>
-        <item name="colorSecondaryContainer">@color/color_secondary_variant</item>
+        <item name="colorSecondaryContainer">@color/color_secondary_light</item>
+        <item name="colorOnSecondaryContainer">@color/color_secondary_variant</item>
 
-        <!-- Fondos / Superficies (día) -->
+        <!-- Tertiary Colors (Accent) -->
+        <item name="colorTertiary">@color/color_accent</item>
+        <item name="colorOnTertiary">@color/color_on_primary</item>
+        <item name="colorTertiaryContainer">@color/color_accent_light</item>
+
+        <!-- Background & Surface -->
         <item name="android:colorBackground">@color/color_background</item>
         <item name="colorOnBackground">@color/color_on_background</item>
         <item name="colorSurface">@color/color_surface</item>
         <item name="colorOnSurface">@color/color_on_surface</item>
+        <item name="colorSurfaceVariant">@color/color_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
 
-        <!-- Status bar (en M3 se recomienda usar superficie + iconos oscuros en modo claro) -->
-        <item name="android:statusBarColor">?attr/colorSurface</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- Status Bar & Navigation Bar -->
+        <item name="android:statusBarColor">@color/color_primary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/color_surface</item>
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <!-- Error Colors -->
+        <item name="colorError">@color/error_color</item>
+        <item name="colorOnError">@color/color_on_primary</item>
+
+        <!-- Outline -->
+        <item name="colorOutline">@color/divider_color</item>
+
+        <!-- Window Background -->
+        <item name="android:windowBackground">@color/color_background</item>
     </style>
 </resources>

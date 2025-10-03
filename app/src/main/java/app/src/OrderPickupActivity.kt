@@ -2,126 +2,108 @@ package app.src
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.WindowManager
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.annotation.AttrRes
-import com.google.android.material.color.MaterialColors
-import app.src.databinding.ActivityOrderPickupBinding
+import app.src.data.api.ApiClient
+import app.src.data.models.EstadoCompra
+import app.src.utils.SessionManager
+import java.util.Locale
 
 class OrderPickupActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityOrderPickupBinding
-    private val vm: OrderPickupViewModel by viewModels()
-
-    private var originalBrightness: Float? = null
-    private var highContrastOn = false
+    private lateinit var tvQrCode: TextView
+    private lateinit var tvCompraId: TextView
+    private lateinit var tvTotal: TextView
+    private lateinit var tvEstado: TextView
+    private lateinit var btnCopyCode: Button
+    private lateinit var btnBackToHistory: Button
+    private lateinit var btnBackToHome: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_order_pickup)
 
-        binding = ActivityOrderPickupBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val sysBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(sysBars.left, sysBars.top, sysBars.right, sysBars.bottom)
-            insets
+        // Load session token
+        val token = SessionManager.getToken(this)
+        if (token != null) {
+            ApiClient.setToken(token)
         }
 
-        binding.topAppBar.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+        // Initialize views
+        tvQrCode = findViewById(R.id.tv_qr_code)
+        tvCompraId = findViewById(R.id.tv_compra_id)
+        tvTotal = findViewById(R.id.tv_total)
+        tvEstado = findViewById(R.id.tv_estado)
+        btnCopyCode = findViewById(R.id.btn_copy_code)
+        btnBackToHistory = findViewById(R.id.btn_back_to_history)
+        btnBackToHome = findViewById(R.id.btn_back_to_home)
+
+        // Get purchase data from Intent
+        val qrCode = intent.getStringExtra("qr_code") ?: ""
+        val compraId = intent.getIntExtra("compra_id", 0)
+        val total = intent.getDoubleExtra("total", 0.0)
+        val estadoStr = intent.getStringExtra("estado") ?: "PAGADO"
+
+        // Display data
+        tvQrCode.text = qrCode
+        tvCompraId.text = String.format(Locale.US, "Order #%d", compraId)
+        tvTotal.text = String.format(Locale.US, "$%.2f", total)
+
+        // Set status with color
+        val estado = try {
+            EstadoCompra.valueOf(estadoStr)
+        } catch (e: Exception) {
+            EstadoCompra.PAGADO
         }
 
-        binding.btnBackToHome.setOnClickListener {
-            startActivity(Intent(this, HomeActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-            })
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        tvEstado.text = getEstadoDisplayText(estado)
+        tvEstado.setTextColor(getEstadoColor(estado))
+
+        // Copy QR code to clipboard
+        btnCopyCode.setOnClickListener {
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("QR Code", qrCode)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "QR Code copied to clipboard", Toast.LENGTH_SHORT).show()
         }
 
-        binding.btnShareCode.setOnClickListener {
-            val code = binding.tvPickupCode.text?.toString().orEmpty()
-            val share = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, getString(R.string.share_pickup_code, code))
-            }
-            startActivity(Intent.createChooser(share, getString(R.string.share_via)))
+        // Back to Order History button
+        btnBackToHistory.setOnClickListener {
+            val intent = Intent(this, OrderHistoryActivity::class.java)
+            startActivity(intent)
+            finish()
         }
 
-        // Copiar al tocar el código
-        binding.tvPickupCode.setOnClickListener {
-            val code = binding.tvPickupCode.text?.toString().orEmpty()
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("pickup_code", code))
-            Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
-        }
-
-        // Alternar alto contraste + brillo máximo al tocar largo la tarjeta
-        binding.cardOrder.setOnLongClickListener {
-            highContrastOn = !highContrastOn
-            toggleHighContrast(highContrastOn)
-            true
-        }
-
-        // Cargar datos
-        vm.ui.observe(this) { ui ->
-            binding.tvTitle.text = ui.title
-            binding.tvSubtitle.text = ui.subtitle
-            binding.tvPickupCode.text = ui.code
-        }
-
-        val code = intent.getStringExtra("pickup_code")
-        val title = intent.getStringExtra("title")
-        val subtitle = intent.getStringExtra("subtitle")
-        vm.load(code, title, subtitle)
-    }
-
-    private fun toggleHighContrast(on: Boolean) {
-        if (on) {
-            // Modo alto contraste para entornos oscuros/ruidosos
-            binding.cardOrder.setCardBackgroundColor(getColor(android.R.color.black))
-            binding.tvPickupCode.setTextColor(getColor(android.R.color.white))
-            binding.tvTitle.setTextColor(getColor(android.R.color.white))
-            binding.tvSubtitle.setTextColor(getColor(android.R.color.white))
-
-            // Brillo máximo temporal
-            originalBrightness = window.attributes.screenBrightness
-            window.attributes = window.attributes.apply { screenBrightness = 1.0f }
-        } else {
-            // Volver a colores del tema Material 3 (colorSurface / colorOnSurface)
-            val surface = themeColor(com.google.android.material.R.attr.colorSurface)
-            val onSurface = themeColor(com.google.android.material.R.attr.colorOnSurface)
-
-            binding.cardOrder.setCardBackgroundColor(surface)
-            binding.tvPickupCode.setTextColor(onSurface)
-            binding.tvTitle.setTextColor(onSurface)
-            binding.tvSubtitle.setTextColor(onSurface)
-
-            // Restaurar brillo
-            window.attributes = window.attributes.apply {
-                screenBrightness = originalBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-            }
+        // Back to Home button
+        btnBackToHome.setOnClickListener {
+            val intent = Intent(this, HomeActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            startActivity(intent)
+            finish()
         }
     }
 
-    // Helper para obtener colores del tema actual (incluye modo oscuro/dinámico)
-    private fun themeColor(@AttrRes attrId: Int): Int =
-        MaterialColors.getColor(binding.root, attrId)
+    private fun getEstadoDisplayText(estado: EstadoCompra): String {
+        return when (estado) {
+            EstadoCompra.CARRITO -> "Cart"
+            EstadoCompra.PAGADO -> "Paid"
+            EstadoCompra.EN_PREPARACION -> "In Preparation"
+            EstadoCompra.LISTO -> "Ready"
+            EstadoCompra.ENTREGADO -> "Delivered"
+        }
+    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Asegurar restauración del brillo
-        window.attributes = window.attributes.apply {
-            screenBrightness = originalBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+    private fun getEstadoColor(estado: EstadoCompra): Int {
+        return when (estado) {
+            EstadoCompra.PAGADO -> getColor(R.color.status_paid)
+            EstadoCompra.EN_PREPARACION -> getColor(R.color.status_preparing)
+            EstadoCompra.LISTO -> getColor(R.color.status_ready)
+            EstadoCompra.ENTREGADO -> getColor(R.color.status_delivered)
+            else -> getColor(R.color.text_secondary)
         }
     }
 }

@@ -2,88 +2,209 @@ package app.src
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
-import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import java.io.Serializable
-import java.text.NumberFormat
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import app.src.adapters.CartAdapter
+import app.src.data.api.ApiClient
+import app.src.data.models.DetalleCompraRequest
+import app.src.data.repositories.Result
+import app.src.data.repositories.UsuarioRepository
+import app.src.utils.CartManager
+import app.src.utils.SessionManager
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 class OrderSummaryActivity : AppCompatActivity() {
 
-    // ✅ No parcelize: just implement Serializable
-    data class CartItem(
-        val id: String,
-        val title: String,
-        val qty: Int,
-        val price: Double
-    ) : Serializable
-
-    private val currency: NumberFormat by lazy {
-        NumberFormat.getCurrencyInstance(Locale.getDefault())
-    }
+    private val viewModel: CompraViewModel by viewModels()
+    private val usuarioRepo = UsuarioRepository()
+    private lateinit var adapter: CartAdapter
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var tvEmptyCart: TextView
+    private lateinit var tvSubtotal: TextView
+    private lateinit var tvTotal: TextView
+    private lateinit var btnCheckout: Button
+    private lateinit var btnBackToHome: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            setContentView(R.layout.activity_order_summary)
+        setContentView(R.layout.activity_order_summary)
 
-            // READ ITEMS (Serializable fallback)
-            @Suppress("UNCHECKED_CAST")
-            val items: List<CartItem> =
-                (intent.getSerializableExtra("cart_items") as? ArrayList<CartItem>)
-                    ?: mockItems()
+        // Load session token
+        val token = SessionManager.getToken(this)
+        if (token != null) {
+            ApiClient.setToken(token)
+        }
 
-            val container = findViewById<LinearLayout>(R.id.ll_items_container) ?: error("Missing ll_items_container in activity_order_summary.xml")
-            val inflater = LayoutInflater.from(this)
+        // Initialize views
+        recyclerView = findViewById(R.id.rv_cart_items)
+        progressBar = findViewById(R.id.progress_bar)
+        tvEmptyCart = findViewById(R.id.tv_empty_cart)
+        tvSubtotal = findViewById(R.id.tv_subtotal_value)
+        tvTotal = findViewById(R.id.tv_total_value)
+        btnCheckout = findViewById(R.id.btn_checkout)
+        btnBackToHome = findViewById(R.id.btn_back_to_home)
 
-            var subtotal = 0.0
-            for (item in items) {
-                val row = inflater.inflate(R.layout.item_order_summary, container, false)
-                row.findViewById<TextView>(R.id.tv_item_title)?.text = item.title
-                    ?: error("Missing tv_item_title in item_order_summary.xml")
-                row.findViewById<TextView>(R.id.tv_item_qty_price)?.text =
-                    "${item.qty} × ${currency.format(item.price)}"
-                        ?: error("Missing tv_item_qty_price in item_order_summary.xml")
-                val lineTotal = item.qty * item.price
-                row.findViewById<TextView>(R.id.tv_item_total)?.text = currency.format(lineTotal)
-                    ?: error("Missing tv_item_total in item_order_summary.xml")
-                subtotal += lineTotal
-                container.addView(row)
+        // Setup RecyclerView
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = CartAdapter(CartManager.getItems()) { productoId ->
+            CartManager.removeProduct(productoId)
+            updateCartDisplay()
+        }
+        recyclerView.adapter = adapter
+
+        // Update initial display
+        updateCartDisplay()
+
+        // ViewModel Observer
+        viewModel.uiState.observe(this) { state ->
+            when (state) {
+                is CompraUiState.Loading -> {
+                    progressBar.visibility = View.VISIBLE
+                    btnCheckout.isEnabled = false
+                }
+                is CompraUiState.Success -> {
+                    progressBar.visibility = View.GONE
+                    btnCheckout.isEnabled = true
+
+                    // Clear cart
+                    CartManager.clear()
+
+                    // Update user balance from API
+                    updateUserBalance {
+                        // Navigate to OrderPickupActivity with QR code
+                        val compra = state.compra
+                        val qrCode = compra.qr?.codigoQrHash
+
+                        if (qrCode != null) {
+                            val intent = Intent(this, OrderPickupActivity::class.java)
+                            intent.putExtra("qr_code", qrCode)
+                            intent.putExtra("compra_id", compra.id)
+                            intent.putExtra("total", compra.total)
+                            intent.putExtra("estado", compra.estado.name)
+                            startActivity(intent)
+                            finish()
+                        } else {
+                            Toast.makeText(this, "Order created successfully but no QR code was generated", Toast.LENGTH_LONG).show()
+                            finish()
+                        }
+                    }
+                }
+                is CompraUiState.Error -> {
+                    progressBar.visibility = View.GONE
+                    btnCheckout.isEnabled = true
+
+                    val errorMessage = when {
+                        state.message.contains("Saldo insuficiente", ignoreCase = true) ->
+                            "Insufficient balance. Please recharge your account."
+                        state.message.contains("disponible", ignoreCase = true) ->
+                            "One or more products are not available."
+                        else -> "Error: ${state.message}"
+                    }
+
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
+                }
+                else -> {
+                    progressBar.visibility = View.GONE
+                    btnCheckout.isEnabled = true
+                }
+            }
+        }
+
+        btnCheckout.setOnClickListener {
+            if (CartManager.isEmpty()) {
+                Toast.makeText(this, "Cart is empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
 
-            val tax = subtotal * 0.08
-            val total = subtotal + tax
-            findViewById<TextView>(R.id.tv_subtotal_value)?.text = currency.format(subtotal)
-                ?: error("Missing tv_subtotal_value in activity_order_summary.xml")
-            findViewById<TextView>(R.id.tv_tax_value)?.text = currency.format(tax)
-                ?: error("Missing tv_tax_value in activity_order_summary.xml")
-            findViewById<TextView>(R.id.tv_total_value)?.text = currency.format(total)
-                ?: error("Missing tv_total_value in activity_order_summary.xml")
+            // Verify user balance
+            val userSaldo = SessionManager.getUserSaldo(this)
+            val total = CartManager.getTotal()
 
-            findViewById<Button>(R.id.btn_checkout)?.setOnClickListener {
-                Toast.makeText(this, "Proceeding to checkout…", Toast.LENGTH_SHORT).show()
-            } ?: error("Missing btn_checkout in activity_order_summary.xml")
+            if (userSaldo < total) {
+                Toast.makeText(
+                    this,
+                    "Insufficient balance. Please recharge your account.\nCurrent balance: ${String.format(Locale.US, "$%.2f", userSaldo)}\nTotal: ${String.format(Locale.US, "$%.2f", total)}",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
 
-            findViewById<Button>(R.id.btn_back_to_home)?.setOnClickListener {
-                val intent = Intent(this, HomeActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-                startActivity(intent)
-            } ?: error("Missing btn_back_to_home in activity_order_summary.xml")
+            // Create products list for the purchase
+            val productos = CartManager.getItems().map { item ->
+                DetalleCompraRequest(
+                    idProducto = item.producto.id,
+                    cantidad = item.cantidad
+                )
+            }
 
-        } catch (t: Throwable) {
-            Toast.makeText(this, "OrderSummary error: ${t.message}", Toast.LENGTH_LONG).show()
-            t.printStackTrace()
-            finish() // avoid leaving a broken screen
+            // Create purchase
+            viewModel.crearCompra(productos)
+        }
+
+        btnBackToHome.setOnClickListener {
+            val intent = Intent(this, HomeActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            startActivity(intent)
         }
     }
 
-    private fun mockItems(): ArrayList<CartItem> = arrayListOf(
-        CartItem("pils", "Pilsner 16oz", 2, 3.50),
-        CartItem("fries", "Fries", 1, 3.00),
-        CartItem("tapas", "Tapas Mix", 1, 6.50)
-    )
+    private fun updateCartDisplay() {
+        val items = CartManager.getItems()
+
+        if (items.isEmpty()) {
+            recyclerView.visibility = View.GONE
+            tvEmptyCart.visibility = View.VISIBLE
+            btnCheckout.isEnabled = false
+        } else {
+            recyclerView.visibility = View.VISIBLE
+            tvEmptyCart.visibility = View.GONE
+            btnCheckout.isEnabled = true
+            adapter.updateItems(items)
+        }
+
+        val total = CartManager.getTotal()
+        tvSubtotal.text = String.format(Locale.US, "$%.2f", total)
+        tvTotal.text = String.format(Locale.US, "$%.2f", total)
+    }
+
+    private fun updateUserBalance(onComplete: () -> Unit) {
+        lifecycleScope.launch {
+            when (val result = usuarioRepo.obtenerPerfil()) {
+                is Result.Success -> {
+                    val usuario = result.data
+                    // Update session with new balance
+                    SessionManager.saveUserData(
+                        this@OrderSummaryActivity,
+                        usuario.id,
+                        usuario.nombre,
+                        usuario.email,
+                        usuario.saldo
+                    )
+                    onComplete()
+                }
+                is Result.Error -> {
+                    // If we can't get the updated balance, still proceed
+                    Toast.makeText(
+                        this@OrderSummaryActivity,
+                        "Warning: Could not update balance",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    onComplete()
+                }
+                else -> {
+                    onComplete()
+                }
+            }
+        }
+    }
 }

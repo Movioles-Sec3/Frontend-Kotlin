@@ -1,27 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand Palette (valores para modo día, por ejemplo) -->
-    <color name="color_primary">#5A3FFF</color>
-    <color name="color_primary_variant">#3A27CC</color>
+    <!-- ============================================ -->
+    <!-- PALETA PROFESIONAL AZUL + GRIS + VERDE MENTA -->
+    <!-- ============================================ -->
+
+    <!-- Primary Colors - Azul Claro Hermoso -->
+    <color name="color_primary">#42A5F5</color> <!-- Azul claro vibrante -->
+    <color name="color_primary_variant">#1E88E5</color> <!-- Azul más oscuro -->
     <color name="color_on_primary">#FFFFFF</color>
+    <color name="color_primary_light">#E3F2FD</color> <!-- Azul muy claro para fondos -->
 
-    <color name="color_secondary">#FF7F50</color>
-    <color name="color_secondary_variant">#FF6333</color>
+    <!-- Secondary Colors - Azul Oscuro y Gris Moderno -->
+    <color name="color_secondary">#263238</color> <!-- Azul grisáceo oscuro -->
+    <color name="color_secondary_variant">#37474F</color> <!-- Gris azulado -->
     <color name="color_on_secondary">#FFFFFF</color>
+    <color name="color_secondary_light">#CFD8DC</color> <!-- Gris claro -->
 
-    <!-- Backgrounds / Surfaces (valores para modo día) -->
-    <color name="color_background">#FFFFFF</color>
-    <color name="color_on_background">#121212</color>
-    <color name="color_surface">#F5F5F5</color>
-    <color name="color_on_surface">#121212</color>
+    <!-- Accent Color - Verde Menta -->
+    <color name="color_accent">#26C6DA</color> <!-- Cyan/Turquesa -->
+    <color name="color_accent_light">#E0F7FA</color>
 
-    <!-- Gradients (valores para modo día) -->
-    <color name="gradient_start">#5A3FFF</color>
-    <color name="gradient_end">#FF7F50</color>
+    <!-- Backgrounds / Surfaces -->
+    <color name="color_background">#F5F9FC</color> <!-- Azul muy claro casi blanco -->
+    <color name="color_on_background">#1A1A1A</color>
+    <color name="color_surface">#FFFFFF</color>
+    <color name="color_on_surface">#1A1A1A</color>
+    <color name="color_surface_variant">#E8F4F8</color> <!-- Azul muy muy claro -->
 
-    <!-- Functional Colors (estos suelen ser los mismos para día y noche) -->
-    <color name="success_color">#81C784</color>
-    <color name="warning_color">#FFD54F</color>
-    <color name="error_color">#E57373</color>
-    <color name="info_color">#64B5F6</color>
+    <!-- Card Colors -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_elevated">#FAFCFE</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#616161</color>
+    <color name="text_hint">#9E9E9E</color>
+
+    <!-- Functional Colors -->
+    <color name="success_color">#4CAF50</color> <!-- Verde -->
+    <color name="warning_color">#FFD600</color> <!-- Amarillo suave -->
+    <color name="error_color">#F44336</color> <!-- Rojo -->
+    <color name="info_color">#2196F3</color> <!-- Azul info -->
+
+    <!-- Status Colors (para órdenes) -->
+    <color name="status_paid">#42A5F5</color> <!-- Azul -->
+    <color name="status_preparing">#26C6DA</color> <!-- Verde menta/acento -->
+    <color name="status_ready">#4CAF50</color> <!-- Verde -->
+    <color name="status_delivered">#81C784</color> <!-- Verde claro -->
+
+    <!-- Gradients -->
+    <color name="gradient_start">#42A5F5</color> <!-- Azul claro -->
+    <color name="gradient_middle">#29B6F6</color> <!-- Azul medio -->
+    <color name="gradient_end">#26C6DA</color> <!-- Cyan -->
+
+    <!-- Dividers -->
+    <color name="divider_color">#E0E0E0</color>
 </resources>

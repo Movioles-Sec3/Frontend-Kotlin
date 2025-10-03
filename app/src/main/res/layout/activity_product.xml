@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/background_categorias"
     android:padding="24dp"
     tools:context=".ProductActivity">
 
@@ -69,6 +70,18 @@
         android:layout_marginTop="24dp"
         android:layout_marginBottom="16dp"
         tools:listitem="@layout/item_product" />
+
+    <!-- Floating Action Button para el carrito -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_cart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/ic_menu_save"
+        android:contentDescription="View shopping cart"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_back_to_home"
+        android:layout_marginEnd="0dp"
+        android:layout_marginBottom="80dp" />
 
     <Button
         android:id="@+id/btn_back_to_home"

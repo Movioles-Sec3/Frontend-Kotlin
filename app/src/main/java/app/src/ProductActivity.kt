@@ -13,7 +13,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.ProductAdapter
 import app.src.data.api.ApiClient
+import app.src.utils.CartManager
 import app.src.utils.SessionManager
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class ProductActivity : AppCompatActivity() {
 
@@ -23,6 +25,7 @@ class ProductActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var errorTextView: TextView
     private lateinit var categoryNameTextView: TextView
+    private lateinit var fabCart: FloatingActionButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +46,7 @@ class ProductActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progress_bar)
         errorTextView = findViewById(R.id.tv_error)
         categoryNameTextView = findViewById(R.id.tv_category_name)
+        fabCart = findViewById(R.id.fab_cart)
 
         // Mostrar nombre de categoría o "All Products"
         if (categoryId != -1 && categoryName != null) {
@@ -54,13 +58,14 @@ class ProductActivity : AppCompatActivity() {
         // Configurar RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = ProductAdapter(emptyList()) { product ->
-            // Click en "Add to Cart"
+            // Agregar producto al carrito
+            CartManager.addProduct(product, 1)
             Toast.makeText(
                 this,
                 "${product.nombre} added to cart!",
                 Toast.LENGTH_SHORT
             ).show()
-            // TODO: Implementar lógica de carrito
+            updateCartBadge()
         }
         recyclerView.adapter = adapter
 
@@ -102,11 +107,42 @@ class ProductActivity : AppCompatActivity() {
             viewModel.cargarProductos(null)
         }
 
-        // Botón para volver al Home
-        findViewById<Button>(R.id.btn_back_to_home).setOnClickListener {
-            val intent = Intent(this, HomeActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // FAB para ir al carrito
+        fabCart.setOnClickListener {
+            val intent = Intent(this, OrderSummaryActivity::class.java)
             startActivity(intent)
+        }
+
+        // Botón para volver al Home o a la Categoría
+        findViewById<Button>(R.id.btn_back_to_home).setOnClickListener {
+            if (categoryId != -1) {
+                // Vino de una categoría, volver a Categoría
+                val intent = Intent(this, CategoryActivity::class.java)
+                startActivity(intent)
+                finish()
+            } else {
+                // Vino del menú principal, volver a Home
+                val intent = Intent(this, HomeActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                startActivity(intent)
+            }
+        }
+
+        // Actualizar badge inicial
+        updateCartBadge()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateCartBadge()
+    }
+
+    private fun updateCartBadge() {
+        val itemCount = CartManager.getItemCount()
+        fabCart.contentDescription = if (itemCount > 0) {
+            "Cart: $itemCount items"
+        } else {
+            "Cart is empty"
         }
     }
 }

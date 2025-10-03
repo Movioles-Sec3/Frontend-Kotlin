@@ -1,0 +1,68 @@
+package app.src.adapters
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import app.src.R
+import app.src.data.models.Producto
+import java.text.NumberFormat
+import java.util.*
+
+class ProductAdapter(
+    private var products: List<Producto>,
+    private val onAddToCart: (Producto) -> Unit
+) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
+
+    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+
+    class ProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val productName: TextView = itemView.findViewById(R.id.tv_product_name)
+        val productDescription: TextView = itemView.findViewById(R.id.tv_product_description)
+        val productPrice: TextView = itemView.findViewById(R.id.tv_product_price)
+        val productAvailability: TextView = itemView.findViewById(R.id.tv_product_availability)
+        val btnAddToCart: Button = itemView.findViewById(R.id.btn_add_to_cart)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProductViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_product, parent, false)
+        return ProductViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ProductViewHolder, position: Int) {
+        val product = products[position]
+
+        holder.productName.text = product.nombre
+        holder.productDescription.text = product.descripcion ?: "No description"
+        holder.productPrice.text = "$${String.format("%.2f", product.precio)}"
+
+        if (product.disponible) {
+            holder.productAvailability.text = "Available"
+            holder.productAvailability.setTextColor(
+                holder.itemView.context.getColor(android.R.color.holo_green_dark)
+            )
+            holder.btnAddToCart.isEnabled = true
+        } else {
+            holder.productAvailability.text = "Not Available"
+            holder.productAvailability.setTextColor(
+                holder.itemView.context.getColor(android.R.color.holo_red_dark)
+            )
+            holder.btnAddToCart.isEnabled = false
+        }
+
+        holder.btnAddToCart.setOnClickListener {
+            onAddToCart(product)
+        }
+    }
+
+    override fun getItemCount() = products.size
+
+    fun updateProducts(newProducts: List<Producto>) {
+        products = newProducts
+        notifyDataSetChanged()
+    }
+}
+

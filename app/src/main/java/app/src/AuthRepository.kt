@@ -1,11 +1,24 @@
 package app.src
 
+import app.src.data.repositories.UsuarioRepository
+import app.src.data.repositories.Result
+
 class AuthRepository {
-    // Aquí luego conectas Retrofit/Firebase/etc.
-    fun login(username: String, password: String): Boolean {
-        // Regla simple temporal: user no vacío y password == "123456" o >= 6 caracteres con un número
-        if (username.isBlank()) return false
-        if (password == "123456") return true
-        return password.any { it.isDigit() } && password.length >= 6
+    private val usuarioRepo = UsuarioRepository()
+
+    suspend fun login(username: String, password: String): Result<String> {
+        val result = usuarioRepo.login(username, password)
+        return when (result) {
+            is Result.Success -> Result.Success(result.data.accessToken)
+            is Result.Error -> result
+            else -> Result.Error("Error inesperado")
+        }
+    }
+
+    suspend fun registrar(nombre: String, email: String, password: String) =
+        usuarioRepo.registrarUsuario(nombre, email, password)
+
+    fun logout() {
+        usuarioRepo.logout()
     }
 }

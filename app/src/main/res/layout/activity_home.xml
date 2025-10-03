@@ -86,12 +86,13 @@
 
         <TextView
             android:id="@+id/tv_home_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/home_title"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@color/color_primary"
+            android:textColor="@android:color/white"
+            android:gravity="center"
             android:layout_marginBottom="16dp" />
 
         <!-- Primera fila de botones -->

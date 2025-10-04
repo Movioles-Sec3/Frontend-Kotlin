@@ -38,7 +38,6 @@ class OrderPickupActivity : AppCompatActivity() {
     private lateinit var btnEnPreparacion: Button
     private lateinit var btnListo: Button
     private lateinit var btnEscanearQR: Button
-    private lateinit var btnTestVibration: Button
     private lateinit var cardEstadoControl: MaterialCardView
     private lateinit var progressBar: ProgressBar
 
@@ -73,7 +72,6 @@ class OrderPickupActivity : AppCompatActivity() {
         btnEnPreparacion = findViewById(R.id.btn_en_preparacion)
         btnListo = findViewById(R.id.btn_listo)
         btnEscanearQR = findViewById(R.id.btn_escanear_qr)
-        btnTestVibration = findViewById(R.id.btn_test_vibration)
         cardEstadoControl = findViewById(R.id.card_estado_control)
         progressBar = findViewById(R.id.progress_bar)
 
@@ -126,11 +124,6 @@ class OrderPickupActivity : AppCompatActivity() {
                 }
             }
         }
-
-        // Botón de prueba de vibración
-        btnTestVibration.setOnClickListener {
-            vibrateOrderReady()
-        }
     }
 
     private fun setupObservers() {
@@ -141,12 +134,21 @@ class OrderPickupActivity : AppCompatActivity() {
                 }
                 is OrderPickupState.Success -> {
                     showLoading(false)
+                    val previousEstado = currentCompra?.estado
                     currentCompra = state.compra
                     updateUI(state.compra)
+
+                    // Vibrar cuando el estado cambia (excepto la carga inicial)
+                    if (previousEstado != null && previousEstado != state.compra.estado) {
+                        vibrateOrderReady()
+                    }
+
                     Toast.makeText(this, "Status updated successfully", Toast.LENGTH_SHORT).show()
                 }
                 is OrderPickupState.QRScanned -> {
                     showLoading(false)
+                    // Vibrar cuando se escanea el QR y se entrega la orden
+                    vibrateOrderReady()
                     mostrarResultadoQR(state.response.mensaje, state.response.cliente, state.response.total)
                 }
                 is OrderPickupState.Error -> {
@@ -303,7 +305,6 @@ class OrderPickupActivity : AppCompatActivity() {
 
             // Check if device has vibrator
             if (!vibrator.hasVibrator()) {
-                Toast.makeText(this, "Device doesn't support vibration", Toast.LENGTH_SHORT).show()
                 return
             }
 
@@ -323,7 +324,6 @@ class OrderPickupActivity : AppCompatActivity() {
 
             Toast.makeText(this, "✅ Vibration executed!", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             android.util.Log.e("OrderPickup", "Vibration error", e)
         }
     }

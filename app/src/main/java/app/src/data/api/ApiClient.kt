@@ -11,8 +11,8 @@ object ApiClient {
 
     // ⚠️ CAMBIAR ESTO: Usa la IP de tu máquina en la red local para pruebas desde dispositivo físico
     // Para emulador Android: usa "10.0.2.2"
-    // Para dispositivo físico: usa la IP de tu PC (ej: "192.168.1.100")
-    private const val BASE_URL = "http://192.168.10.16:8000/"
+    // Para dispositivo físico: usa la IP de tu PC (ej: "192.168.10.16")
+    private const val BASE_URL = "http://10.0.2.2:8000/"
 
     private var token: String? = null
 

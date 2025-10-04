@@ -223,17 +223,6 @@
                     android:text="📱 Scan QR &amp; Deliver"
                     android:textSize="15sp"
                     android:visibility="gone" />
-
-                <!-- Botón de Prueba de Vibración -->
-                <Button
-                    android:id="@+id/btn_test_vibration"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🔔 Test Vibration"
-                    android:textSize="14sp"
-                    android:layout_marginTop="8dp"
-                    android:visibility="visible" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

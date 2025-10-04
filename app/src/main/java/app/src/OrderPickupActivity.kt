@@ -2,8 +2,13 @@ package app.src
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
@@ -33,6 +38,7 @@ class OrderPickupActivity : AppCompatActivity() {
     private lateinit var btnEnPreparacion: Button
     private lateinit var btnListo: Button
     private lateinit var btnEscanearQR: Button
+    private lateinit var btnTestVibration: Button
     private lateinit var cardEstadoControl: MaterialCardView
     private lateinit var progressBar: ProgressBar
 
@@ -67,6 +73,7 @@ class OrderPickupActivity : AppCompatActivity() {
         btnEnPreparacion = findViewById(R.id.btn_en_preparacion)
         btnListo = findViewById(R.id.btn_listo)
         btnEscanearQR = findViewById(R.id.btn_escanear_qr)
+        btnTestVibration = findViewById(R.id.btn_test_vibration)
         cardEstadoControl = findViewById(R.id.card_estado_control)
         progressBar = findViewById(R.id.progress_bar)
 
@@ -118,6 +125,11 @@ class OrderPickupActivity : AppCompatActivity() {
                     confirmarEscaneoQR(qr.codigoQrHash)
                 }
             }
+        }
+
+        // Botón de prueba de vibración
+        btnTestVibration.setOnClickListener {
+            vibrateOrderReady()
         }
     }
 
@@ -273,6 +285,47 @@ class OrderPickupActivity : AppCompatActivity() {
         btnEnPreparacion.isEnabled = !show
         btnListo.isEnabled = !show
         btnEscanearQR.isEnabled = !show
+    }
+
+    /**
+     * Vibrates the device when an order is ready for pickup
+     * Uses different patterns for Android versions
+     */
+    private fun vibrateOrderReady() {
+        try {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibratorManager.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+
+            // Check if device has vibrator
+            if (!vibrator.hasVibrator()) {
+                Toast.makeText(this, "Device doesn't support vibration", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // Create vibration pattern: wait, vibrate, wait, vibrate
+            // Pattern: [delay, vibrate, pause, vibrate, pause, vibrate]
+            val pattern = longArrayOf(0, 200, 100, 200, 100, 400)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // For Android O (API 26) and above
+                val vibrationEffect = VibrationEffect.createWaveform(pattern, -1) // -1 means don't repeat
+                vibrator.vibrate(vibrationEffect)
+            } else {
+                // For older versions
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(pattern, -1) // -1 means don't repeat
+            }
+
+            Toast.makeText(this, "✅ Vibration executed!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            android.util.Log.e("OrderPickup", "Vibration error", e)
+        }
     }
 
     private fun getEstadoDisplayText(estado: EstadoCompra): String {

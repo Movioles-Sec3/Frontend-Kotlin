@@ -101,7 +101,16 @@ data class Compra(
     @SerializedName("total") val total: Double,
     @SerializedName("estado") val estado: EstadoCompra,
     @SerializedName("detalles") val detalles: List<DetalleCompraResponse>,
-    @SerializedName("qr") val qr: QR?
+    @SerializedName("qr") val qr: QR?,
+    // Nuevos campos de fechas
+    @SerializedName("fecha_en_preparacion") val fechaEnPreparacion: String?,
+    @SerializedName("fecha_listo") val fechaListo: String?,
+    @SerializedName("fecha_entregado") val fechaEntregado: String?,
+    // Nuevos campos de tiempos (solo se muestran cuando la compra está finalizada)
+    @SerializedName("tiempo_hasta_preparacion") val tiempoHastaPreparacion: Double?,
+    @SerializedName("tiempo_preparacion") val tiempoPreparacion: Double?,
+    @SerializedName("tiempo_espera_entrega") val tiempoEsperaEntrega: Double?,
+    @SerializedName("tiempo_total") val tiempoTotal: Double?
 )
 
 data class ActualizarEstadoRequest(
@@ -135,4 +144,3 @@ data class HealthResponse(
 data class ErrorResponse(
     @SerializedName("detail") val detail: String
 )
-

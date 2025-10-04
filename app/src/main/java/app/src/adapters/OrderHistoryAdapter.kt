@@ -3,13 +3,16 @@ package app.src.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import app.src.R
 import app.src.data.models.Compra
 import app.src.data.models.EstadoCompra
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.round
 
 class OrderHistoryAdapter(
     private val orders: List<Compra>,
@@ -22,6 +25,13 @@ class OrderHistoryAdapter(
         val tvOrderTotal: TextView = itemView.findViewById(R.id.tv_order_total)
         val tvOrderStatus: TextView = itemView.findViewById(R.id.tv_order_status)
         val tvOrderItems: TextView = itemView.findViewById(R.id.tv_order_items)
+
+        // Nuevos elementos para los tiempos
+        val layoutDeliveryTimes: LinearLayout = itemView.findViewById(R.id.layout_delivery_times)
+        val tvTiempoHastaPreparacion: TextView = itemView.findViewById(R.id.tv_tiempo_hasta_preparacion)
+        val tvTiempoPreparacion: TextView = itemView.findViewById(R.id.tv_tiempo_preparacion)
+        val tvTiempoEsperaEntrega: TextView = itemView.findViewById(R.id.tv_tiempo_espera_entrega)
+        val tvTiempoTotal: TextView = itemView.findViewById(R.id.tv_tiempo_total)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OrderViewHolder {
@@ -54,12 +64,34 @@ class OrderHistoryAdapter(
         val itemCount = order.detalles.sumOf { it.cantidad }
         holder.tvOrderItems.text = "$itemCount item${if (itemCount != 1) "s" else ""}"
 
+        // Mostrar tiempos solo si la compra está entregada y los datos están disponibles
+        val shouldShowTimes = order.estado == EstadoCompra.ENTREGADO &&
+                             order.tiempoTotal != null &&
+                             order.tiempoHastaPreparacion != null &&
+                             order.tiempoPreparacion != null &&
+                             order.tiempoEsperaEntrega != null
+
+        holder.layoutDeliveryTimes.isVisible = shouldShowTimes
+
+        if (shouldShowTimes) {
+            // Convertir segundos a minutos y mostrar con 1 decimal
+            holder.tvTiempoHastaPreparacion.text = "${formatTime(order.tiempoHastaPreparacion!!)} min"
+            holder.tvTiempoPreparacion.text = "${formatTime(order.tiempoPreparacion!!)} min"
+            holder.tvTiempoEsperaEntrega.text = "${formatTime(order.tiempoEsperaEntrega!!)} min"
+            holder.tvTiempoTotal.text = "${formatTime(order.tiempoTotal!!)} min"
+        }
+
         holder.itemView.setOnClickListener {
             onOrderClick(order)
         }
     }
 
     override fun getItemCount() = orders.size
+
+    private fun formatTime(timeInSeconds: Double): String {
+        val timeInMinutes = timeInSeconds / 60.0
+        return String.format(Locale.US, "%.1f", timeInMinutes)
+    }
 
     private fun getEstadoDisplayText(estado: EstadoCompra): String {
         return when (estado) {

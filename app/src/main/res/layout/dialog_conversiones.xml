@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Header con nombre del producto -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_currency_exchange"
+            android:layout_marginEnd="8dp"
+            app:tint="@color/color_primary" />
+
+        <TextView
+            android:id="@+id/tv_product_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Product Name"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/color_primary" />
+    </LinearLayout>
+
+    <!-- Precio original -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="@color/color_primary"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Precio Original"
+                android:textSize="14sp"
+                android:textColor="@color/color_on_primary" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <TextView
+                    android:id="@+id/tv_precio_original"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="$7,000"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_on_primary" />
+
+                <TextView
+                    android:id="@+id/tv_moneda_original"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="COP"
+                    android:textSize="16sp"
+                    android:textColor="@color/color_on_primary"
+                    android:layout_marginStart="8dp"
+                    android:background="#40FFFFFF"
+                    android:padding="4dp"
+                    android:minWidth="40dp"
+                    android:gravity="center" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Título de conversiones -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Conversiones de Moneda"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/color_primary"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Lista de conversiones -->
+    <LinearLayout
+        android:id="@+id/ll_conversiones_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <!-- Las conversiones se añadirán dinámicamente aquí -->
+    </LinearLayout>
+
+    <!-- Loading indicator -->
+    <ProgressBar
+        android:id="@+id/pb_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginVertical="24dp"
+        android:visibility="gone" />
+
+    <!-- Error message -->
+    <TextView
+        android:id="@+id/tv_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Error al cargar conversiones"
+        android:textColor="@color/error_color"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:padding="16dp"
+        android:visibility="gone" />
+
+    <!-- Fecha de actualización -->
+    <TextView
+        android:id="@+id/tv_fecha_actualizacion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Actualizado: 2025-10-04 12:25"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>

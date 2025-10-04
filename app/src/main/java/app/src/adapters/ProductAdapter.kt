@@ -8,12 +8,14 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import app.src.R
 import app.src.data.models.Producto
+import com.google.android.material.button.MaterialButton
 import java.text.NumberFormat
 import java.util.*
 
 class ProductAdapter(
     private var products: List<Producto>,
-    private val onAddToCart: (Producto) -> Unit
+    private val onAddToCart: (Producto) -> Unit,
+    private val onShowConversions: (Producto) -> Unit
 ) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
 
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
@@ -24,6 +26,7 @@ class ProductAdapter(
         val productPrice: TextView = itemView.findViewById(R.id.tv_product_price)
         val productAvailability: TextView = itemView.findViewById(R.id.tv_product_availability)
         val btnAddToCart: Button = itemView.findViewById(R.id.btn_add_to_cart)
+        val btnConversions: MaterialButton = itemView.findViewById(R.id.btn_conversions)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProductViewHolder {
@@ -56,6 +59,10 @@ class ProductAdapter(
         holder.btnAddToCart.setOnClickListener {
             onAddToCart(product)
         }
+
+        holder.btnConversions.setOnClickListener {
+            onShowConversions(product)
+        }
     }
 
     override fun getItemCount() = products.size
@@ -65,4 +72,3 @@ class ProductAdapter(
         notifyDataSetChanged()
     }
 }
-

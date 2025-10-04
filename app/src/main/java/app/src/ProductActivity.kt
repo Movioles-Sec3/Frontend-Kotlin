@@ -9,11 +9,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.ProductAdapter
 import app.src.data.api.ApiClient
 import app.src.utils.CartManager
+import app.src.utils.ConversionesDialogManager
 import app.src.utils.SessionManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
@@ -26,6 +28,7 @@ class ProductActivity : AppCompatActivity() {
     private lateinit var errorTextView: TextView
     private lateinit var categoryNameTextView: TextView
     private lateinit var fabCart: FloatingActionButton
+    private lateinit var conversionesDialogManager: ConversionesDialogManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +39,9 @@ class ProductActivity : AppCompatActivity() {
         if (token != null) {
             ApiClient.setToken(token)
         }
+
+        // Inicializar manager de conversiones
+        conversionesDialogManager = ConversionesDialogManager(this, lifecycleScope)
 
         // Obtener filtro de categoría desde Intent
         val categoryId = intent.getIntExtra("category_id", -1)
@@ -57,16 +63,23 @@ class ProductActivity : AppCompatActivity() {
 
         // Configurar RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = ProductAdapter(emptyList()) { product ->
-            // Agregar producto al carrito
-            CartManager.addProduct(product, 1)
-            Toast.makeText(
-                this,
-                "${product.nombre} added to cart!",
-                Toast.LENGTH_SHORT
-            ).show()
-            updateCartBadge()
-        }
+        adapter = ProductAdapter(
+            products = emptyList(),
+            onAddToCart = { product ->
+                // Agregar producto al carrito
+                CartManager.addProduct(product, 1)
+                Toast.makeText(
+                    this,
+                    "${product.nombre} added to cart!",
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateCartBadge()
+            },
+            onShowConversions = { product ->
+                // Mostrar conversiones de precio
+                conversionesDialogManager.mostrarConversiones(product.id, product.nombre)
+            }
+        )
         recyclerView.adapter = adapter
 
         // Observer del ViewModel

@@ -23,6 +23,7 @@ import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
 import app.src.utils.AnalyticsLogger
 import app.src.utils.SessionManager
+import app.src.utils.ConversionesDialogManager
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -46,6 +47,9 @@ class HomeActivity : AppCompatActivity() {
     private var menuLoadStartTime: Long = 0
     private var menuReadyEventEmitted = false
 
+    // NUEVO: Manager para mostrar conversiones de precio
+    private lateinit var conversionesDialogManager: ConversionesDialogManager
+
     companion object {
         private const val TAG = "HomeActivity"
     }
@@ -62,6 +66,9 @@ class HomeActivity : AppCompatActivity() {
         if (token != null) {
             ApiClient.setToken(token)
         }
+
+        // Inicializar el manager de conversiones
+        conversionesDialogManager = ConversionesDialogManager(this, lifecycleScope)
 
         menuLoadStartTime = System.currentTimeMillis()
         Log.d(TAG, "🚀 HomeActivity iniciada - Timer iniciado en: $menuLoadStartTime")
@@ -170,6 +177,10 @@ class HomeActivity : AppCompatActivity() {
             onAddToCartClick = { producto ->
                 // Agregar al carrito y navegar a OrderSummaryActivity
                 agregarAlCarrito(producto)
+            },
+            onShowConversions = { producto ->
+                // Mostrar conversiones de precio
+                conversionesDialogManager.mostrarConversiones(producto.id, producto.nombre)
             }
         )
 

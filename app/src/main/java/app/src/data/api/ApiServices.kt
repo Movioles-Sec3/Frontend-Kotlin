@@ -39,6 +39,9 @@ interface ProductoApiService {
     @GET("productos/recomendados")
     suspend fun obtenerProductosRecomendados(): Response<List<Producto>>
 
+    @GET("productos/{producto_id}/conversiones")
+    suspend fun obtenerConversionesProducto(@Path("producto_id") productoId: Int): Response<ProductoConConversiones>
+
     @POST("productos/tipos/")
     suspend fun crearTipo(@Body tipo: TipoProducto): Response<TipoProducto>
 

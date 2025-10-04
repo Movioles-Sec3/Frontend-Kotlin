@@ -62,17 +62,41 @@
             android:textColor="?attr/colorPrimary"
             android:gravity="center" />
 
-        <!-- Botón agregar al carrito -->
-        <Button
-            android:id="@+id/btn_add_to_cart"
+        <!-- Botones en fila horizontal -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Add to Cart"
-            android:textSize="12sp"
-            android:backgroundTint="?attr/colorPrimary"
-            android:textColor="?attr/colorOnPrimary"
-            style="@style/Widget.Material3.Button" />
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <!-- Botón agregar al carrito -->
+            <Button
+                android:id="@+id/btn_add_to_cart"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="2dp"
+                android:text="Add"
+                android:textSize="10sp"
+                android:backgroundTint="?attr/colorPrimary"
+                android:textColor="?attr/colorOnPrimary"
+                style="@style/Widget.Material3.Button" />
+
+            <!-- Botón de conversiones -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_conversions"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:text="Conv"
+                android:textSize="10sp"
+                app:icon="@drawable/ic_currency_exchange"
+                app:iconSize="12dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

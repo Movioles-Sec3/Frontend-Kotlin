@@ -66,19 +66,41 @@
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginTop="12dp" />
 
-        <Button
-            android:id="@+id/btn_add_to_cart"
-            style="@style/Widget.Material3.Button.TonalButton"
+        <LinearLayout
+            android:id="@+id/ll_buttons"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Add to Cart"
-            android:textSize="14sp"
+            android:orientation="horizontal"
+            android:weightSum="2"
             app:layout_constraintTop_toBottomOf="@id/tv_product_price"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="12dp">
+
+            <Button
+                android:id="@+id/btn_add_to_cart"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Add to Cart"
+                android:textSize="12sp"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_conversions"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Conversions"
+                android:textSize="12sp"
+                app:icon="@drawable/ic_currency_exchange"
+                app:iconSize="16dp"
+                android:layout_marginStart="4dp" />
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>
-

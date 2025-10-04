@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardBackgroundColor="@color/color_surface"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Bandera o icono de moneda -->
+        <View
+            android:id="@+id/v_currency_indicator"
+            android:layout_width="8dp"
+            android:layout_height="40dp"
+            android:background="@color/color_secondary"
+            android:layout_marginEnd="12dp" />
+
+        <!-- Información de la moneda -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_currency_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="USD"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/color_primary" />
+
+            <TextView
+                android:id="@+id/tv_currency_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dólar Estadounidense"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray" />
+        </LinearLayout>
+
+        <!-- Precio convertido -->
+        <TextView
+            android:id="@+id/tv_converted_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$1.79"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/color_secondary" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

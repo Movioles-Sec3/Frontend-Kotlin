@@ -11,6 +11,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -20,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 import app.src.data.api.ApiClient
 import app.src.data.models.Compra
 import app.src.data.models.EstadoCompra
+import app.src.utils.QRCodeGenerator
 import app.src.utils.SessionManager
 import com.google.android.material.card.MaterialCardView
 import java.util.Locale
@@ -27,6 +29,7 @@ import java.util.Locale
 class OrderPickupActivity : AppCompatActivity() {
 
     private lateinit var tvQrCode: TextView
+    private lateinit var ivQrCode: ImageView
     private lateinit var tvCompraId: TextView
     private lateinit var tvTotal: TextView
     private lateinit var tvEstado: TextView
@@ -61,6 +64,7 @@ class OrderPickupActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         tvQrCode = findViewById(R.id.tv_qr_code)
+        ivQrCode = findViewById(R.id.iv_qr_code)
         tvCompraId = findViewById(R.id.tv_compra_id)
         tvTotal = findViewById(R.id.tv_total)
         tvEstado = findViewById(R.id.tv_estado)
@@ -217,6 +221,15 @@ class OrderPickupActivity : AppCompatActivity() {
 
         // Actualizar visibilidad de botones según el estado actual
         updateButtonsVisibility(compra.estado)
+
+        // Generar y mostrar código QR
+        compra.qr?.let { qr ->
+            val bitmap = QRCodeGenerator.generateQRCode(qr.codigoQrHash)
+            ivQrCode.setImageBitmap(bitmap)
+            ivQrCode.visibility = View.VISIBLE
+        } ?: run {
+            ivQrCode.visibility = View.GONE
+        }
     }
 
     private fun updateButtonsVisibility(estado: EstadoCompra) {

@@ -4,21 +4,27 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import app.src.utils.AnalyticsLogger
 
 class MainActivity : AppCompatActivity() {
+
+    // Variable para medir tiempo completo de app launch
+    private var appLaunchStartTime: Long = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Aquí puedes establecer un layout simple para esta MainActivity
-        // Por ahora, para que compile, no vamos a establecer un layout específico.
-        // Más adelante, crearemos un layout para ella.
-        // setContentView(R.layout.activity_main) // Esto lo haremos en el siguiente paso
 
-        // TEMPORAL: Para poder lanzar la CategoryActivity y probarla
-        // Crea un botón programáticamente para lanzar CategoryActivity
+        // Iniciar timer de app launch
+        appLaunchStartTime = System.currentTimeMillis()
+
+        // TEMPORAL: Para poder lanzar la HomeActivity y probarla
+        // Crea un botón programáticamente para lanzar HomeActivity
         val button = Button(this)
-        button.text = "Ir a Categorías"
+        button.text = "Ir a Home"
         button.setOnClickListener {
-            val intent = Intent(this, CategoryActivity::class.java)
+            val intent = Intent(this, HomeActivity::class.java)
+            // Pasar tiempo de inicio para medición completa
+            intent.putExtra("app_launch_start_time", appLaunchStartTime)
             startActivity(intent)
         }
         setContentView(button) // Establecemos el botón como la vista principal por ahora

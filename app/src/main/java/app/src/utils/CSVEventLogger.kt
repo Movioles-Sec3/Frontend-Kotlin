@@ -136,6 +136,38 @@ object CSVEventLogger {
     }
 
     /**
+     * Guarda un evento app_launch_to_menu en el CSV
+     */
+    fun logAppLaunchToMenu(
+        context: Context,
+        timestamp: Long,
+        durationMs: Long,
+        networkType: String,
+        deviceTier: String,
+        osApi: Int,
+        appVersion: String?
+    ) {
+        val (deviceModel, androidVersion) = getDeviceInfo()
+
+        val csvLine = buildString {
+            append(formatTimestamp(timestamp)).append(",")
+            append("app_launch_to_menu").append(",")
+            append(durationMs).append(",")
+            append(escapeCsvValue(networkType)).append(",")
+            append(escapeCsvValue(deviceTier)).append(",")
+            append(osApi).append(",")
+            append("").append(",") // success (solo para payment)
+            append("").append(",") // payment_method (solo para payment)
+            append("").append(",") // screen (solo para menu_ready)
+            append(escapeCsvValue(appVersion)).append(",")
+            append(escapeCsvValue(deviceModel)).append(",")
+            append(escapeCsvValue(androidVersion))
+        }
+
+        writeToCSV(context, csvLine)
+    }
+
+    /**
      * Escribe una línea en el archivo CSV
      */
     private fun writeToCSV(context: Context, line: String) {

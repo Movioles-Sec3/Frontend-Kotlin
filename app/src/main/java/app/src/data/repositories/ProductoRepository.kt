@@ -47,6 +47,19 @@ class ProductoRepository {
         }
     }
 
+    suspend fun obtenerProductosRecomendados(): Result<List<Producto>> {
+        return try {
+            val response = api.obtenerProductosRecomendados()
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                Result.Error(parseError(response), response.code())
+            }
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Error de conexión")
+        }
+    }
+
     private fun parseError(response: Response<*>): String {
         return when (response.code()) {
             400 -> "Datos inválidos"
@@ -56,4 +69,3 @@ class ProductoRepository {
         }
     }
 }
-

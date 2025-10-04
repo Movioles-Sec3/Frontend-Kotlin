@@ -65,16 +65,29 @@
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:layout_marginBottom="8dp" />
 
+                <!-- QR Code Image -->
+                <ImageView
+                    android:id="@+id/iv_qr_code"
+                    android:layout_width="250dp"
+                    android:layout_height="250dp"
+                    android:scaleType="centerInside"
+                    android:background="@android:color/white"
+                    android:padding="8dp"
+                    android:contentDescription="QR Code for order pickup"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- QR Code Text (for copy functionality) -->
                 <TextView
                     android:id="@+id/tv_qr_code"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ABC123XYZ"
-                    android:textSize="32sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorPrimary"
                     android:fontFamily="monospace"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="16dp"
+                    android:visibility="visible" />
 
                 <View
                     android:layout_width="match_parent"

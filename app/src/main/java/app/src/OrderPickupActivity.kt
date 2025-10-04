@@ -188,7 +188,16 @@ class OrderPickupActivity : AppCompatActivity() {
                     codigoQrHash = qrCode,
                     estado = app.src.data.models.EstadoQR.ACTIVO
                 )
-            } else null
+            } else null,
+            // Nuevos campos de fechas - null porque aún no están disponibles
+            fechaEnPreparacion = null,
+            fechaListo = null,
+            fechaEntregado = null,
+            // Nuevos campos de tiempos - null porque aún no están disponibles
+            tiempoHastaPreparacion = null,
+            tiempoPreparacion = null,
+            tiempoEsperaEntrega = null,
+            tiempoTotal = null
         )
 
         currentCompra = compra

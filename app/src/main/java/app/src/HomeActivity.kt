@@ -6,10 +6,17 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ProgressBar
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import app.src.adapters.RecommendedProductsAdapter
 import app.src.data.api.ApiClient
+import app.src.data.models.Producto
 import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
 import app.src.utils.SessionManager
@@ -19,6 +26,15 @@ import java.util.Locale
 class HomeActivity : AppCompatActivity() {
 
     private val usuarioRepo = UsuarioRepository()
+    private val homeViewModel: HomeViewModel by viewModels()
+
+    // Views para productos recomendados
+    private lateinit var rvRecommendedProducts: RecyclerView
+    private lateinit var pbRecommendedLoading: ProgressBar
+    private lateinit var tvRecommendedError: TextView
+    private lateinit var tvVerTodos: TextView
+
+    private var recommendedProductsAdapter: RecommendedProductsAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,13 +46,126 @@ class HomeActivity : AppCompatActivity() {
             ApiClient.setToken(token)
         }
 
-        // Display user information
+        initializeViews()
+        setupRecommendedProducts()
+        setupObservers()
+        setupExistingFunctionality()
+    }
+
+    private fun initializeViews() {
+        // Views existentes
         val userName = SessionManager.getUserName(this)
         val userSaldo = SessionManager.getUserSaldo(this)
 
         findViewById<TextView>(R.id.tv_welcome)?.text = "Hello, $userName"
         findViewById<TextView>(R.id.tv_saldo)?.text = String.format(Locale.US, "Balance: $%.2f", userSaldo)
 
+        // Views para productos recomendados
+        rvRecommendedProducts = findViewById(R.id.rv_recommended_products)
+        pbRecommendedLoading = findViewById(R.id.pb_recommended_loading)
+        tvRecommendedError = findViewById(R.id.tv_recommended_error)
+        tvVerTodos = findViewById(R.id.tv_ver_todos)
+    }
+
+    private fun setupRecommendedProducts() {
+        // Configurar RecyclerView con LinearLayoutManager horizontal
+        rvRecommendedProducts.layoutManager = LinearLayoutManager(
+            this,
+            LinearLayoutManager.HORIZONTAL,
+            false
+        )
+
+        // Click en "Ver todos" - navegar a ProductActivity
+        tvVerTodos.setOnClickListener {
+            startActivity(Intent(this, ProductActivity::class.java))
+        }
+    }
+
+    private fun setupObservers() {
+        // Observer para el estado de productos recomendados
+        homeViewModel.uiState.observe(this) { state ->
+            when (state) {
+                is HomeUiState.Loading -> {
+                    pbRecommendedLoading.isVisible = true
+                    rvRecommendedProducts.isVisible = false
+                    tvRecommendedError.isVisible = false
+                }
+                is HomeUiState.Success -> {
+                    pbRecommendedLoading.isVisible = false
+                    rvRecommendedProducts.isVisible = true
+                    tvRecommendedError.isVisible = false
+
+                    setupRecommendedProductsAdapter(state.productosRecomendados)
+                }
+                is HomeUiState.Error -> {
+                    pbRecommendedLoading.isVisible = false
+                    rvRecommendedProducts.isVisible = false
+                    tvRecommendedError.isVisible = true
+                    tvRecommendedError.text = "Error: ${state.message}"
+                }
+            }
+        }
+    }
+
+    private fun setupRecommendedProductsAdapter(productos: List<Producto>) {
+        recommendedProductsAdapter = RecommendedProductsAdapter(
+            productos = productos,
+            onProductClick = { producto ->
+                // Navegar a detalles del producto (si tienes una activity de detalles)
+                homeViewModel.onProductoRecomendadoClick(producto)
+                Toast.makeText(this, "Producto: ${producto.nombre}", Toast.LENGTH_SHORT).show()
+            },
+            onAddToCartClick = { producto ->
+                // Agregar al carrito y navegar a OrderSummaryActivity
+                agregarAlCarrito(producto)
+            }
+        )
+
+        rvRecommendedProducts.adapter = recommendedProductsAdapter
+    }
+
+    private fun agregarAlCarrito(producto: Producto) {
+        if (!producto.disponible) {
+            Toast.makeText(this, "Product not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Mostrar diálogo de confirmación con cantidad
+        showAddToCartDialog(producto)
+    }
+
+    private fun showAddToCartDialog(producto: Producto) {
+        val input = EditText(this).apply {
+            hint = "Quantity"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText("1")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Add to Cart")
+            .setMessage("${producto.nombre}\nPrice: $${String.format(Locale.US, "%.0f", producto.precio)}\n\nEnter quantity:")
+            .setView(input)
+            .setPositiveButton("Add") { _, _ ->
+                val cantidadStr = input.text.toString()
+                val cantidad = cantidadStr.toIntOrNull()
+
+                if (cantidad != null && cantidad > 0) {
+                    // Usar CartManager para agregar el producto al carrito
+                    app.src.utils.CartManager.addProduct(producto, cantidad)
+
+                    Toast.makeText(this, "Added $cantidad ${producto.nombre} to cart", Toast.LENGTH_SHORT).show()
+
+                    // Opcional: Navegar directamente al carrito
+                    startActivity(Intent(this, OrderSummaryActivity::class.java))
+                } else {
+                    Toast.makeText(this, "Invalid quantity", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun setupExistingFunctionality() {
         // Recharge balance button
         findViewById<Button>(R.id.btn_recharge)?.setOnClickListener {
             showRechargeDialog()

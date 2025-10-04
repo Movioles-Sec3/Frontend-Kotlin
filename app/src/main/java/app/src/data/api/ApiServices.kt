@@ -36,6 +36,9 @@ interface ProductoApiService {
     @GET("productos/tipos/")
     suspend fun listarTipos(): Response<List<TipoProducto>>
 
+    @GET("productos/recomendados")
+    suspend fun obtenerProductosRecomendados(): Response<List<Producto>>
+
     @POST("productos/tipos/")
     suspend fun crearTipo(@Body tipo: TipoProducto): Response<TipoProducto>
 
@@ -81,4 +84,3 @@ interface GeneralApiService {
     @GET("health")
     suspend fun healthCheck(): Response<HealthResponse>
 }
-

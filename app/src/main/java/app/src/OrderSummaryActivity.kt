@@ -2,6 +2,7 @@ package app.src
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
@@ -17,6 +18,7 @@ import app.src.data.api.ApiClient
 import app.src.data.models.DetalleCompraRequest
 import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
+import app.src.utils.AnalyticsLogger
 import app.src.utils.CartManager
 import app.src.utils.SessionManager
 import kotlinx.coroutines.launch
@@ -34,6 +36,12 @@ class OrderSummaryActivity : AppCompatActivity() {
     private lateinit var tvTotal: TextView
     private lateinit var btnCheckout: Button
     private lateinit var btnBackToHome: Button
+
+    private var payTapStartTime: Long = 0
+
+    companion object {
+        private const val TAG = "OrderSummaryActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,10 +79,15 @@ class OrderSummaryActivity : AppCompatActivity() {
                 is CompraUiState.Loading -> {
                     progressBar.visibility = View.VISIBLE
                     btnCheckout.isEnabled = false
+                    Log.d(TAG, "⏳ Procesando pago...")
                 }
                 is CompraUiState.Success -> {
                     progressBar.visibility = View.GONE
                     btnCheckout.isEnabled = true
+
+                    // Emitir evento de pago completado exitosamente
+                    Log.d(TAG, "✅ Pago exitoso - Emitiendo evento payment_completed")
+                    emitPaymentCompletedEvent(success = true, paymentMethod = "wallet")
 
                     // Clear cart
                     CartManager.clear()
@@ -102,6 +115,10 @@ class OrderSummaryActivity : AppCompatActivity() {
                 is CompraUiState.Error -> {
                     progressBar.visibility = View.GONE
                     btnCheckout.isEnabled = true
+
+                    // Emitir evento de pago fallido
+                    Log.d(TAG, "❌ Pago fallido - Emitiendo evento payment_completed (success=false)")
+                    emitPaymentCompletedEvent(success = false, paymentMethod = "wallet")
 
                     val errorMessage = when {
                         state.message.contains("Saldo insuficiente", ignoreCase = true) ->
@@ -138,6 +155,10 @@ class OrderSummaryActivity : AppCompatActivity() {
                 ).show()
                 return@setOnClickListener
             }
+
+            // Iniciar el timer de pago
+            payTapStartTime = System.currentTimeMillis()
+            Log.d(TAG, "💳 Pago iniciado - Timer iniciado en: $payTapStartTime")
 
             // Create products list for the purchase
             val productos = CartManager.getItems().map { item ->
@@ -206,5 +227,16 @@ class OrderSummaryActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun emitPaymentCompletedEvent(success: Boolean, paymentMethod: String?) {
+        val duration = System.currentTimeMillis() - payTapStartTime
+        Log.d(TAG, "📊 Emitiendo payment_completed - Duration: ${duration}ms, Success: $success")
+        AnalyticsLogger.logPaymentCompleted(
+            context = this,
+            durationMs = duration,
+            success = success,
+            paymentMethod = paymentMethod
+        )
     }
 }

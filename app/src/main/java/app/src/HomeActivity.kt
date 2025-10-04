@@ -2,6 +2,7 @@ package app.src
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -20,6 +21,7 @@ import app.src.data.api.ApiClient
 import app.src.data.models.Producto
 import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
+import app.src.utils.AnalyticsLogger
 import app.src.utils.SessionManager
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
@@ -41,6 +43,13 @@ class HomeActivity : AppCompatActivity() {
 
     private var recommendedProductsAdapter: RecommendedProductsAdapter? = null
 
+    private var menuLoadStartTime: Long = 0
+    private var menuReadyEventEmitted = false
+
+    companion object {
+        private const val TAG = "HomeActivity"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Aplicar el tema antes de setContentView
         applyThemeFromPreferences()
@@ -53,6 +62,9 @@ class HomeActivity : AppCompatActivity() {
         if (token != null) {
             ApiClient.setToken(token)
         }
+
+        menuLoadStartTime = System.currentTimeMillis()
+        Log.d(TAG, "🚀 HomeActivity iniciada - Timer iniciado en: $menuLoadStartTime")
 
         initializeViews()
         setupRecommendedProducts()
@@ -110,6 +122,7 @@ class HomeActivity : AppCompatActivity() {
                     pbRecommendedLoading.isVisible = true
                     rvRecommendedProducts.isVisible = false
                     tvRecommendedError.isVisible = false
+                    Log.d(TAG, "⏳ Cargando productos recomendados...")
                 }
                 is HomeUiState.Success -> {
                     pbRecommendedLoading.isVisible = false
@@ -117,12 +130,30 @@ class HomeActivity : AppCompatActivity() {
                     tvRecommendedError.isVisible = false
 
                     setupRecommendedProductsAdapter(state.productosRecomendados)
+
+                    // Emitir evento menu_ready cuando el menú está listo
+                    if (!menuReadyEventEmitted) {
+                        Log.d(TAG, "✅ Productos cargados - Emitiendo evento menu_ready")
+                        emitMenuReadyEvent()
+                        menuReadyEventEmitted = true
+                    } else {
+                        Log.d(TAG, "⚠️ Evento menu_ready ya fue emitido anteriormente")
+                    }
                 }
                 is HomeUiState.Error -> {
                     pbRecommendedLoading.isVisible = false
                     rvRecommendedProducts.isVisible = false
                     tvRecommendedError.isVisible = true
                     tvRecommendedError.text = "Error: ${state.message}"
+                    Log.e(TAG, "❌ Error al cargar productos: ${state.message}")
+
+                    // NUEVO: Emitir evento menu_ready incluso si hay error
+                    // El menú principal sigue siendo usable (puede navegar a categorías, productos, etc.)
+                    if (!menuReadyEventEmitted) {
+                        Log.d(TAG, "⚠️ Error al cargar productos recomendados, pero emitiendo evento menu_ready (menú base es usable)")
+                        emitMenuReadyEvent()
+                        menuReadyEventEmitted = true
+                    }
                 }
             }
         }
@@ -214,6 +245,33 @@ class HomeActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_logout)?.setOnClickListener {
             logout()
         }
+
+        // NUEVO: Botón para ver estadísticas de eventos (long press en el balance)
+        findViewById<TextView>(R.id.tv_saldo)?.setOnLongClickListener {
+            showAnalyticsInfo()
+            true
+        }
+    }
+
+    private fun showAnalyticsInfo() {
+        val eventCount = AnalyticsLogger.getEventCount(this)
+        val csvPath = AnalyticsLogger.getCSVFilePath(this)
+
+        AlertDialog.Builder(this)
+            .setTitle("📊 Analytics Events")
+            .setMessage(
+                "Total events saved: $eventCount\n\n" +
+                "CSV file location:\n$csvPath\n\n" +
+                "You can pull the CSV file using:\n" +
+                "adb pull \"$csvPath\" ."
+            )
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Show in Logs") { _, _ ->
+                Log.d(TAG, "📊 Analytics CSV Path: $csvPath")
+                Log.d(TAG, "📊 Total Events: $eventCount")
+                Toast.makeText(this, "CSV path logged. Check Logcat.", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun showRechargeDialog() {
@@ -332,5 +390,16 @@ class HomeActivity : AppCompatActivity() {
 
         // Actualizar el botón (aunque la actividad se recargará)
         updateNightModeButton()
+    }
+
+    private fun emitMenuReadyEvent() {
+        val duration = System.currentTimeMillis() - menuLoadStartTime
+        Log.d(TAG, "📊 Emitiendo menu_ready - Duration: ${duration}ms")
+        AnalyticsLogger.logMenuReady(
+            context = this,
+            durationMs = duration,
+            screen = "HomeActivity",
+            appVersion = "1.0"
+        )
     }
 }

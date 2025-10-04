@@ -15,7 +15,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import app.src.adapters.RecommendedProductsAdapter
 import app.src.data.api.ApiClient
+import app.src.data.models.Producto
 import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
 import app.src.utils.SessionManager
@@ -25,6 +29,15 @@ import java.util.Locale
 class HomeActivity : AppCompatActivity() {
 
     private val usuarioRepo = UsuarioRepository()
+    private val homeViewModel: HomeViewModel by viewModels()
+
+    // Views para productos recomendados
+    private lateinit var rvRecommendedProducts: RecyclerView
+    private lateinit var pbRecommendedLoading: ProgressBar
+    private lateinit var tvRecommendedError: TextView
+    private lateinit var tvVerTodos: TextView
+
+    private var recommendedProductsAdapter: RecommendedProductsAdapter? = null
 
     // Sensor variables
     private lateinit var sensorManager: SensorManager
@@ -55,7 +68,14 @@ class HomeActivity : AppCompatActivity() {
             ApiClient.setToken(token)
         }
 
-        // Display user information
+        initializeViews()
+        setupRecommendedProducts()
+        setupObservers()
+        setupExistingFunctionality()
+    }
+
+    private fun initializeViews() {
+        // Views existentes
         val userName = SessionManager.getUserName(this)
         val userSaldo = SessionManager.getUserSaldo(this)
 

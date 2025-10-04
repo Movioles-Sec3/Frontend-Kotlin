@@ -113,6 +113,73 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Nueva sección de Productos Recomendados -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+
+            <!-- Título de la sección -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Productos Recomendados"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/tv_ver_todos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ver todos"
+                    android:textSize="14sp"
+                    android:textColor="@color/color_accent"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp" />
+            </LinearLayout>
+
+            <!-- RecyclerView horizontal para productos recomendados -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_recommended_products"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="0dp"
+                android:paddingEnd="12dp"
+                android:clipToPadding="false" />
+
+            <!-- ProgressBar para carga de productos -->
+            <ProgressBar
+                android:id="@+id/pb_recommended_loading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginVertical="24dp"
+                android:visibility="gone" />
+
+            <!-- Mensaje de error -->
+            <TextView
+                android:id="@+id/tv_recommended_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Error al cargar productos recomendados"
+                android:textColor="@color/error_color"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:padding="16dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/tv_home_title"
             android:layout_width="match_parent"

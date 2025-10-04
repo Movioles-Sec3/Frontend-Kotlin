@@ -44,8 +44,10 @@ class HomeActivity : AppCompatActivity() {
 
     private var recommendedProductsAdapter: RecommendedProductsAdapter? = null
 
+    // Variables de tiempo mejoradas
     private var menuLoadStartTime: Long = 0
-    private var menuReadyEventEmitted = false
+    private var appLaunchStartTime: Long = 0 // Para tiempo completo desde launch
+    private var menuReadyEventEmitted = false // Para evitar eventos duplicados
 
     // NUEVO: Manager para mostrar conversiones de precio
     private lateinit var conversionesDialogManager: ConversionesDialogManager
@@ -61,6 +63,18 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
         
+        // Obtener tiempo de app launch si viene del MainActivity
+        appLaunchStartTime = intent.getLongExtra("app_launch_start_time", 0L)
+
+        // Si no viene de MainActivity, usar tiempo actual como fallback
+        if (appLaunchStartTime == 0L) {
+            appLaunchStartTime = System.currentTimeMillis()
+        }
+
+        menuLoadStartTime = System.currentTimeMillis()
+        Log.d(TAG, "🚀 HomeActivity iniciada - Timer iniciado en: $menuLoadStartTime")
+        Log.d(TAG, "🚀 App Launch Time from MainActivity: $appLaunchStartTime")
+
         // Load session token
         val token = SessionManager.getToken(this)
         if (token != null) {
@@ -69,9 +83,6 @@ class HomeActivity : AppCompatActivity() {
 
         // Inicializar el manager de conversiones
         conversionesDialogManager = ConversionesDialogManager(this, lifecycleScope)
-
-        menuLoadStartTime = System.currentTimeMillis()
-        Log.d(TAG, "🚀 HomeActivity iniciada - Timer iniciado en: $menuLoadStartTime")
 
         initializeViews()
         setupRecommendedProducts()
@@ -404,13 +415,25 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun emitMenuReadyEvent() {
-        val duration = System.currentTimeMillis() - menuLoadStartTime
-        Log.d(TAG, "📊 Emitiendo menu_ready - Duration: ${duration}ms")
+        // 1. Emitir evento tradicional (HomeActivity start hasta menu ready)
+        val menuDuration = System.currentTimeMillis() - menuLoadStartTime
+        Log.d(TAG, "📊 Emitiendo menu_ready - Duration: ${menuDuration}ms")
         AnalyticsLogger.logMenuReady(
             context = this,
-            durationMs = duration,
+            durationMs = menuDuration,
             screen = "HomeActivity",
             appVersion = "1.0"
         )
+
+        // 2. NUEVO: Emitir evento de tiempo completo (app launch hasta menu ready)
+        if (appLaunchStartTime > 0) {
+            val appLaunchDuration = System.currentTimeMillis() - appLaunchStartTime
+            Log.d(TAG, "📊 Emitiendo app_launch_to_menu - Duration: ${appLaunchDuration}ms")
+            AnalyticsLogger.logAppLaunchToMenu(
+                context = this,
+                durationMs = appLaunchDuration,
+                appVersion = "1.0"
+            )
+        }
     }
 }

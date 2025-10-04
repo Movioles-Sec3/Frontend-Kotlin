@@ -15,10 +15,43 @@ object AnalyticsLogger {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = cm.activeNetwork ?: return "Offline"
         val capabilities = cm.getNetworkCapabilities(network) ?: return "Unknown"
+
         return when {
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
+                // Intentar detectar 4G/5G
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // Android 10+ puede detectar mejor las tecnologías
+                        when {
+                            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) -> "Cellular"
+                            else -> getCellularSubtype(context)
+                        }
+                    } else {
+                        getCellularSubtype(context)
+                    }
+                } catch (e: Exception) {
+                    "Cellular"
+                }
+            }
             else -> "Unknown"
+        }
+    }
+
+    private fun getCellularSubtype(context: Context): String {
+        return try {
+            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as android.telephony.TelephonyManager
+            when (tm.networkType) {
+                android.telephony.TelephonyManager.NETWORK_TYPE_LTE -> "4G"
+                android.telephony.TelephonyManager.NETWORK_TYPE_NR -> "5G" // API 29+
+                android.telephony.TelephonyManager.NETWORK_TYPE_HSPAP,
+                android.telephony.TelephonyManager.NETWORK_TYPE_HSPA,
+                android.telephony.TelephonyManager.NETWORK_TYPE_HSUPA,
+                android.telephony.TelephonyManager.NETWORK_TYPE_HSDPA -> "3G"
+                else -> "Cellular"
+            }
+        } catch (e: Exception) {
+            "Cellular"
         }
     }
 
@@ -128,6 +161,47 @@ object AnalyticsLogger {
 
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error al enviar evento payment_completed", e)
+        }
+    }
+
+    // NUEVA FUNCIÓN: Para medir tiempo completo desde app launch
+    fun logAppLaunchToMenu(
+        context: Context,
+        durationMs: Long,
+        appVersion: String? = null
+    ) {
+        val timestamp = System.currentTimeMillis()
+        val networkType = getNetworkType(context)
+        val deviceTier = getDeviceTier()
+        val osApi = Build.VERSION.SDK_INT
+
+        try {
+            // 1. Enviar a Firebase Analytics
+            val analytics = FirebaseAnalytics.getInstance(context)
+            val bundle = Bundle().apply {
+                putLong("duration_ms", durationMs)
+                putString("network_type", networkType)
+                putString("device_tier", deviceTier)
+                putInt("os_api", osApi)
+                appVersion?.let { putString("app_version", it) }
+            }
+            analytics.logEvent("app_launch_to_menu", bundle)
+
+            // 2. Guardar en CSV local
+            CSVEventLogger.logAppLaunchToMenu(
+                context = context,
+                timestamp = timestamp,
+                durationMs = durationMs,
+                networkType = networkType,
+                deviceTier = deviceTier,
+                osApi = osApi,
+                appVersion = appVersion
+            )
+
+            Log.d(TAG, "✅ app_launch_to_menu event logged: ${durationMs}ms, $networkType, $deviceTier")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error logging app_launch_to_menu event", e)
         }
     }
 

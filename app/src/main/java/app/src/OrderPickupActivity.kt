@@ -2,8 +2,13 @@ package app.src
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
@@ -129,12 +134,21 @@ class OrderPickupActivity : AppCompatActivity() {
                 }
                 is OrderPickupState.Success -> {
                     showLoading(false)
+                    val previousEstado = currentCompra?.estado
                     currentCompra = state.compra
                     updateUI(state.compra)
+
+                    // Vibrar cuando el estado cambia (excepto la carga inicial)
+                    if (previousEstado != null && previousEstado != state.compra.estado) {
+                        vibrateOrderReady()
+                    }
+
                     Toast.makeText(this, "Status updated successfully", Toast.LENGTH_SHORT).show()
                 }
                 is OrderPickupState.QRScanned -> {
                     showLoading(false)
+                    // Vibrar cuando se escanea el QR y se entrega la orden
+                    vibrateOrderReady()
                     mostrarResultadoQR(state.response.mensaje, state.response.cliente, state.response.total)
                 }
                 is OrderPickupState.Error -> {
@@ -273,6 +287,45 @@ class OrderPickupActivity : AppCompatActivity() {
         btnEnPreparacion.isEnabled = !show
         btnListo.isEnabled = !show
         btnEscanearQR.isEnabled = !show
+    }
+
+    /**
+     * Vibrates the device when an order is ready for pickup
+     * Uses different patterns for Android versions
+     */
+    private fun vibrateOrderReady() {
+        try {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibratorManager.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+
+            // Check if device has vibrator
+            if (!vibrator.hasVibrator()) {
+                return
+            }
+
+            // Create vibration pattern: wait, vibrate, wait, vibrate
+            // Pattern: [delay, vibrate, pause, vibrate, pause, vibrate]
+            val pattern = longArrayOf(0, 200, 100, 200, 100, 400)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // For Android O (API 26) and above
+                val vibrationEffect = VibrationEffect.createWaveform(pattern, -1) // -1 means don't repeat
+                vibrator.vibrate(vibrationEffect)
+            } else {
+                // For older versions
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(pattern, -1) // -1 means don't repeat
+            }
+
+            Toast.makeText(this, "✅ Vibration executed!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            android.util.Log.e("OrderPickup", "Vibration error", e)
+        }
     }
 
     private fun getEstadoDisplayText(estado: EstadoCompra): String {

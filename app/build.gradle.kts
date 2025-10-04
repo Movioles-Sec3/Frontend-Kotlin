@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -34,6 +35,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
         // compose = false (por defecto)
     }
 
@@ -50,6 +52,12 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    // Deshabilitar lint temporalmente para evitar problemas de bloqueo de archivos en Windows
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
@@ -70,6 +78,10 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

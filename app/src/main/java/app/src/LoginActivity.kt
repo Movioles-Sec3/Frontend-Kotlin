@@ -31,12 +31,15 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // Verificar si ya hay sesión activa
+        // COMENTADO: Para que siempre inicie en LoginActivity
+        /*
         if (SessionManager.isLoggedIn(this)) {
             val token = SessionManager.getToken(this)
             ApiClient.setToken(token)
             navigateToHome()
             return
         }
+        */
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)

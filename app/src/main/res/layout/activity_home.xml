@@ -14,6 +14,35 @@
         android:orientation="vertical"
         android:padding="20dp">
 
+        <!-- Botones para cambiar tema manualmente -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btn_theme_light"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="☀️ Modo Día"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btn_theme_dark"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="🌙 Modo Noche"
+                android:textSize="14sp" />
+        </LinearLayout>
+
         <!-- Header Card con fondo azul -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

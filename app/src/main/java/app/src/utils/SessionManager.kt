@@ -10,6 +10,7 @@ object SessionManager {
     private const val KEY_USER_NAME = "user_name"
     private const val KEY_USER_EMAIL = "user_email"
     private const val KEY_USER_SALDO = "user_saldo"
+    private const val KEY_NIGHT_MODE = "night_mode"
 
     private fun getPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -52,5 +53,13 @@ object SessionManager {
     fun clearSession(context: Context) {
         getPreferences(context).edit().clear().apply()
     }
-}
 
+    // Funciones para modo nocturno
+    fun saveNightMode(context: Context, isNightMode: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_NIGHT_MODE, isNightMode).apply()
+    }
+
+    fun getNightMode(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_NIGHT_MODE, false)
+    }
+}

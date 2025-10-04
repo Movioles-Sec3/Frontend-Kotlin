@@ -10,6 +10,7 @@ import android.widget.ProgressBar
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,6 +21,7 @@ import app.src.data.models.Producto
 import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
 import app.src.utils.SessionManager
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -34,9 +36,15 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var tvRecommendedError: TextView
     private lateinit var tvVerTodos: TextView
 
+    // Botón de modo nocturno
+    private lateinit var btnNightMode: MaterialButton
+
     private var recommendedProductsAdapter: RecommendedProductsAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Aplicar el tema antes de setContentView
+        applyThemeFromPreferences()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
         
@@ -50,6 +58,16 @@ class HomeActivity : AppCompatActivity() {
         setupRecommendedProducts()
         setupObservers()
         setupExistingFunctionality()
+        setupNightModeButton()
+    }
+
+    private fun applyThemeFromPreferences() {
+        val isNightMode = SessionManager.getNightMode(this)
+        if (isNightMode) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
     }
 
     private fun initializeViews() {
@@ -65,6 +83,9 @@ class HomeActivity : AppCompatActivity() {
         pbRecommendedLoading = findViewById(R.id.pb_recommended_loading)
         tvRecommendedError = findViewById(R.id.tv_recommended_error)
         tvVerTodos = findViewById(R.id.tv_ver_todos)
+
+        // Botón de modo nocturno
+        btnNightMode = findViewById(R.id.btn_night_mode)
     }
 
     private fun setupRecommendedProducts() {
@@ -269,5 +290,47 @@ class HomeActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+    private fun setupNightModeButton() {
+        updateNightModeButton()
+
+        btnNightMode.setOnClickListener {
+            toggleNightMode()
+        }
+    }
+
+    private fun updateNightModeButton() {
+        val isNightMode = SessionManager.getNightMode(this)
+
+        if (isNightMode) {
+            btnNightMode.setIconResource(R.drawable.ic_day_mode)
+            btnNightMode.contentDescription = "Cambiar a modo día"
+        } else {
+            btnNightMode.setIconResource(R.drawable.ic_night_mode)
+            btnNightMode.contentDescription = "Cambiar a modo noche"
+        }
+    }
+
+    private fun toggleNightMode() {
+        val currentMode = SessionManager.getNightMode(this)
+        val newMode = !currentMode
+
+        // Guardar la nueva preferencia
+        SessionManager.saveNightMode(this, newMode)
+
+        // Aplicar el nuevo tema
+        if (newMode) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
+
+        // Mostrar mensaje de confirmación
+        val modeText = if (newMode) "nocturno" else "día"
+        Toast.makeText(this, "Modo $modeText activado", Toast.LENGTH_SHORT).show()
+
+        // Actualizar el botón (aunque la actividad se recargará)
+        updateNightModeButton()
     }
 }

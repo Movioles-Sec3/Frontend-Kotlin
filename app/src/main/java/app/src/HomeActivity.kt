@@ -28,7 +28,7 @@ import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class HomeActivity : AppCompatActivity() {
+class HomeActivity : BaseActivity() {
 
     private val usuarioRepo = UsuarioRepository()
     private val homeViewModel: HomeViewModel by viewModels()
@@ -57,8 +57,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Aplicar el tema antes de setContentView
-        applyThemeFromPreferences()
+        // NO llamar applyThemeByHour() aquí porque BaseActivity ya lo hace
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
@@ -89,15 +88,6 @@ class HomeActivity : AppCompatActivity() {
         setupObservers()
         setupExistingFunctionality()
         setupNightModeButton()
-    }
-
-    private fun applyThemeFromPreferences() {
-        val isNightMode = SessionManager.getNightMode(this)
-        if (isNightMode) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        } else {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        }
     }
 
     private fun initializeViews() {

@@ -48,6 +48,12 @@
     <color name="status_ready">#4CAF50</color> <!-- Verde -->
     <color name="status_delivered">#81C784</color> <!-- Verde claro -->
 
+    <!-- Darker versions for Home buttons -->
+    <color name="color_primary_dark">#1976D2</color> <!-- Azul más oscuro para botón Categories -->
+    <color name="color_secondary_dark">#1C262B</color> <!-- Gris azulado más oscuro para botón Products -->
+    <color name="color_accent_dark">#00ACC1</color> <!-- Cyan más oscuro para botón Shopping Cart -->
+    <color name="status_ready_dark">#388E3C</color> <!-- Verde más oscuro para botón Order History -->
+
     <!-- Gradients -->
     <color name="gradient_start">#42A5F5</color> <!-- Azul claro -->
     <color name="gradient_middle">#29B6F6</color> <!-- Azul medio -->

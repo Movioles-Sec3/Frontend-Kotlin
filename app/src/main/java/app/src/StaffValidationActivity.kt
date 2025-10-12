@@ -16,7 +16,7 @@ import app.src.data.repositories.Result
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class StaffValidationActivity : AppCompatActivity() {
+class StaffValidationActivity : BaseActivity() {
 
     private val compraRepo = CompraRepository()
     private lateinit var etQrCode: EditText
@@ -115,4 +115,3 @@ class StaffValidationActivity : AppCompatActivity() {
         }
     }
 }
-

@@ -26,7 +26,7 @@ import app.src.utils.SessionManager
 import com.google.android.material.card.MaterialCardView
 import java.util.Locale
 
-class OrderPickupActivity : AppCompatActivity() {
+class OrderPickupActivity : BaseActivity() {
 
     private lateinit var tvQrCode: TextView
     private lateinit var ivQrCode: ImageView

@@ -7,11 +7,10 @@ import android.text.TextWatcher
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import app.src.databinding.ActivityRegisterBinding
 
-class RegisterActivity : AppCompatActivity() {
+class RegisterActivity : BaseActivity() {
 
     private lateinit var binding: ActivityRegisterBinding
     private val vm: RegisterViewModel by viewModels {
@@ -90,4 +89,3 @@ class RegisterActivity : AppCompatActivity() {
         override fun afterTextChanged(s: Editable?) {}
     }
 }
-

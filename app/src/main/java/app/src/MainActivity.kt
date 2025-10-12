@@ -3,10 +3,9 @@ package app.src
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import androidx.appcompat.app.AppCompatActivity
 import app.src.utils.AnalyticsLogger
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
     // Variable para medir tiempo completo de app launch
     private var appLaunchStartTime: Long = 0

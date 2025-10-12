@@ -6,7 +6,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -25,7 +24,7 @@ import app.src.utils.SessionManager
  * - Navigates to the product listing screen when a category is selected.
  * - Provides a button to return to the Home screen.
  */
-class CategoryActivity : AppCompatActivity() {
+class CategoryActivity : BaseActivity() {
 
     // Lazily scoped ViewModel tied to this Activity's lifecycle.
     private val viewModel: CategoryViewModel by viewModels()

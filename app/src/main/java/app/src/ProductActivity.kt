@@ -8,7 +8,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,7 +18,7 @@ import app.src.utils.ConversionesDialogManager
 import app.src.utils.SessionManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
-class ProductActivity : AppCompatActivity() {
+class ProductActivity : BaseActivity() {
 
     private val viewModel: ProductoViewModel by viewModels()
     private lateinit var adapter: ProductAdapter

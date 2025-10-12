@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "296424787821",
-    "project_id": "taptoast-3631d",
-    "storage_bucket": "taptoast-3631d.firebasestorage.app"
+    "project_number": "143568757957",
+    "project_id": "tapandtoaste",
+    "storage_bucket": "tapandtoaste.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:296424787821:android:082924ef611319ed90d464",
+        "mobilesdk_app_id": "1:143568757957:android:97a42afaa65dbe86057cac",
         "android_client_info": {
           "package_name": "app.src"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCIWzTzb3mzNylV6AOB0A0qj5vGLnKZBdE"
+          "current_key": "AIzaSyBfyO8y8GDELERbCM_-_XPvtOkihw5nb5o"
         }
       ],
       "services": {

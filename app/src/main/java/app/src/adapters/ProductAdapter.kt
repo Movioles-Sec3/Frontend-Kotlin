@@ -4,10 +4,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import app.src.R
 import app.src.data.models.Producto
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.button.MaterialButton
 import java.text.NumberFormat
 import java.util.*
@@ -21,6 +24,7 @@ class ProductAdapter(
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
 
     class ProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val productImage: ImageView = itemView.findViewById(R.id.iv_product_image)
         val productName: TextView = itemView.findViewById(R.id.tv_product_name)
         val productDescription: TextView = itemView.findViewById(R.id.tv_product_description)
         val productPrice: TextView = itemView.findViewById(R.id.tv_product_price)
@@ -41,6 +45,15 @@ class ProductAdapter(
         holder.productName.text = product.nombre
         holder.productDescription.text = product.descripcion ?: "No description"
         holder.productPrice.text = "$${String.format("%.2f", product.precio)}"
+
+        // Cargar imagen con Glide
+        Glide.with(holder.itemView.context)
+            .load(product.imagenUrl)
+            .placeholder(R.drawable.ic_store_24)
+            .error(R.drawable.ic_store_24)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .centerCrop()
+            .into(holder.productImage)
 
         if (product.disponible) {
             holder.productAvailability.text = "Available"

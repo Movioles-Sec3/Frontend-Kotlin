@@ -7,14 +7,13 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.OrderHistoryAdapter
 import app.src.data.api.ApiClient
 import app.src.utils.SessionManager
 
-class OrderHistoryActivity : AppCompatActivity() {
+class OrderHistoryActivity : BaseActivity() {
 
     private val viewModel: CompraViewModel by viewModels()
     private lateinit var recyclerView: RecyclerView
@@ -80,4 +79,3 @@ class OrderHistoryActivity : AppCompatActivity() {
         }
     }
 }
-

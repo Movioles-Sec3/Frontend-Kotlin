@@ -9,8 +9,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.CartAdapter
@@ -21,10 +19,11 @@ import app.src.data.repositories.UsuarioRepository
 import app.src.utils.AnalyticsLogger
 import app.src.utils.CartManager
 import app.src.utils.SessionManager
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class OrderSummaryActivity : AppCompatActivity() {
+class OrderSummaryActivity : BaseActivity() {
 
     private val viewModel: CompraViewModel by viewModels()
     private val usuarioRepo = UsuarioRepository()

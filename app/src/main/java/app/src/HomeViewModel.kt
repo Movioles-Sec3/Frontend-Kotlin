@@ -89,8 +89,10 @@ class HomeViewModel : ViewModel() {
 
             when (val result = productoRepository.obtenerProductosRecomendados()) {
                 is Result.Success -> {
-                    _productosRecomendados.value = result.data
-                    _uiState.value = HomeUiState.Success(result.data)
+                    // Limitar a máximo 5 productos recomendados
+                    val productosLimitados = result.data.take(5)
+                    _productosRecomendados.value = productosLimitados
+                    _uiState.value = HomeUiState.Success(productosLimitados)
                 }
                 is Result.Error -> {
                     _uiState.value = HomeUiState.Error(result.message)

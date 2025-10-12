@@ -26,7 +26,10 @@ import app.src.utils.SessionManager
 import com.google.android.material.card.MaterialCardView
 import java.util.Locale
 
-class OrderPickupActivity : AppCompatActivity() {
+class OrderPickupActivity : BaseActivity() {
+
+    // Sobrescribir para indicar que esta es una pantalla de QR (brillo al 100%)
+    override val isQrScreen: Boolean = true
 
     private lateinit var tvQrCode: TextView
     private lateinit var ivQrCode: ImageView

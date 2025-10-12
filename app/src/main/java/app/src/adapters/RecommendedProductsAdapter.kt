@@ -9,6 +9,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import app.src.R
 import app.src.data.models.Producto
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.button.MaterialButton
 import java.util.Locale
 
@@ -41,9 +43,14 @@ class RecommendedProductsAdapter(
         holder.tvProductPrice.text = String.format(Locale.US, "$%.0f", producto.precio)
         holder.tvProductCategory.text = producto.tipoProducto.nombre
 
-        // TODO: Cargar imagen con Glide o Picasso cuando esté disponible
-        // Por ahora, usar una imagen placeholder
-        holder.ivProductImage.setImageResource(R.drawable.ic_store_24)
+        // Cargar imagen con Glide
+        Glide.with(holder.itemView.context)
+            .load(producto.imagenUrl)
+            .placeholder(R.drawable.ic_store_24) // Imagen mientras carga
+            .error(R.drawable.ic_store_24) // Imagen si falla la carga
+            .diskCacheStrategy(DiskCacheStrategy.ALL) // Cachear la imagen
+            .centerCrop() // Ajustar la imagen al ImageView
+            .into(holder.ivProductImage)
 
         // Click en el producto completo
         holder.itemView.setOnClickListener {

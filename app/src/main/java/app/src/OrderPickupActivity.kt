@@ -28,6 +28,9 @@ import java.util.Locale
 
 class OrderPickupActivity : BaseActivity() {
 
+    // Sobrescribir para indicar que esta es una pantalla de QR (brillo al 100%)
+    override val isQrScreen: Boolean = true
+
     private lateinit var tvQrCode: TextView
     private lateinit var ivQrCode: ImageView
     private lateinit var tvCompraId: TextView

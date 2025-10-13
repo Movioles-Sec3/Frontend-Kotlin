@@ -62,5 +62,22 @@ object SessionManager {
     fun getNightMode(context: Context): Boolean {
         return getPreferences(context).getBoolean(KEY_NIGHT_MODE, false)
     }
-}
 
+    // Función para limpiar la imagen de perfil al hacer logout
+    fun clearProfileImage(context: Context) {
+        // Limpiar la ruta de la imagen en SharedPreferences del perfil
+        val profilePrefs = context.getSharedPreferences("UserProfile", Context.MODE_PRIVATE)
+        val imagePath = profilePrefs.getString("profile_image_path", null)
+
+        // Si existe una imagen guardada, eliminar el archivo físico
+        if (imagePath != null) {
+            val imageFile = java.io.File(imagePath)
+            if (imageFile.exists()) {
+                imageFile.delete()
+            }
+        }
+
+        // Limpiar la referencia en SharedPreferences
+        profilePrefs.edit().clear().apply()
+    }
+}

@@ -368,6 +368,7 @@ class HomeActivity : BaseActivity() {
 
     private fun logout() {
         SessionManager.clearSession(this)
+        SessionManager.clearProfileImage(this) // Eliminar imagen de perfil al cerrar sesión
         ApiClient.setToken(null)
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

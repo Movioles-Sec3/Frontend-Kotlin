@@ -63,3 +63,4 @@ object SessionManager {
         return getPreferences(context).getBoolean(KEY_NIGHT_MODE, false)
     }
 }
+

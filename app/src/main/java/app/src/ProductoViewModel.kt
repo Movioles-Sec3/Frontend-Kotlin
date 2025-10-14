@@ -1,5 +1,6 @@
 package app.src
 
+import android.app.Application
 import androidx.lifecycle.*
 import app.src.data.models.Producto
 import app.src.data.models.TipoProducto
@@ -14,7 +15,7 @@ sealed class ProductoUiState {
     data class Error(val message: String) : ProductoUiState()
 }
 
-class ProductoViewModel : ViewModel() {
+class ProductoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repo = ProductoRepository()
 
@@ -27,7 +28,7 @@ class ProductoViewModel : ViewModel() {
     fun cargarProductos(idTipo: Int? = null) {
         viewModelScope.launch {
             _uiState.value = ProductoUiState.Loading
-            when (val result = repo.listarProductos(idTipo, true)) {
+            when (val result = repo.listarProductos(getApplication(), idTipo, true)) {
                 is Result.Success -> {
                     _uiState.value = ProductoUiState.Success(result.data)
                 }
@@ -43,7 +44,7 @@ class ProductoViewModel : ViewModel() {
 
     fun cargarCategorias() {
         viewModelScope.launch {
-            when (val result = repo.listarTipos()) {
+            when (val result = repo.listarTipos(getApplication())) {
                 is Result.Success -> {
                     _categorias.value = result.data
                 }
@@ -55,4 +56,3 @@ class ProductoViewModel : ViewModel() {
         }
     }
 }
-

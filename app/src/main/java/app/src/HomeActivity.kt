@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.ProgressBar
@@ -41,6 +42,9 @@ class HomeActivity : BaseActivity() {
 
     // Botón de modo nocturno
     private lateinit var btnNightMode: MaterialButton
+
+    // Botón de perfil
+    private lateinit var btnPerfil: ImageButton
 
     private var recommendedProductsAdapter: RecommendedProductsAdapter? = null
 
@@ -106,6 +110,9 @@ class HomeActivity : BaseActivity() {
 
         // Botón de modo nocturno
         btnNightMode = findViewById(R.id.btn_night_mode)
+
+        // Botón de perfil
+        btnPerfil = findViewById(R.id.btnPerfil)
     }
 
     private fun setupRecommendedProducts() {
@@ -263,6 +270,12 @@ class HomeActivity : BaseActivity() {
             showAnalyticsInfo()
             true
         }
+
+        // Botón de perfil
+        btnPerfil.setOnClickListener {
+            val intent = Intent(this, ProfileActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun showAnalyticsInfo() {
@@ -355,6 +368,7 @@ class HomeActivity : BaseActivity() {
 
     private fun logout() {
         SessionManager.clearSession(this)
+        SessionManager.clearProfileImage(this) // Eliminar imagen de perfil al cerrar sesión
         ApiClient.setToken(null)
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

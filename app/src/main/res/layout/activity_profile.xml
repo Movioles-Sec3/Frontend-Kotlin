@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background_inicio"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Header con botón de volver -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_revert"
+                android:contentDescription="Volver"
+                android:tint="@android:color/white" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Mi Perfil"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:gravity="center" />
+
+            <!-- Espacio para balance visual -->
+            <View
+                android:layout_width="40dp"
+                android:layout_height="40dp" />
+        </LinearLayout>
+
+        <!-- Card del perfil -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/color_primary"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:gravity="center_horizontal">
+
+                <!-- Contenedor de imagen con botón de cámara -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- Imagen de perfil circular -->
+                    <ImageView
+                        android:id="@+id/ivProfileImage"
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        android:src="@android:drawable/ic_menu_myplaces"
+                        android:contentDescription="Imagen de perfil"
+                        android:background="@android:color/darker_gray"
+                        android:scaleType="centerCrop" />
+
+                    <!-- Botón de cámara flotante -->
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/btnCamera"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|end"
+                        android:src="@android:drawable/ic_menu_camera"
+                        android:contentDescription="Tomar foto"
+                        app:fabSize="mini"
+                        app:tint="@android:color/white"
+                        app:backgroundTint="@color/color_accent" />
+                </FrameLayout>
+
+                <!-- Nombre -->
+                <TextView
+                    android:id="@+id/tvProfileName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nombre del usuario"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_on_primary"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Correo -->
+                <TextView
+                    android:id="@+id/tvProfileEmail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="correo@ejemplo.com"
+                    android:textSize="16sp"
+                    android:textColor="@color/color_on_primary"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Balance -->
+                <TextView
+                    android:id="@+id/tvProfileBalance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Balance: $0.00"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_on_primary" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>

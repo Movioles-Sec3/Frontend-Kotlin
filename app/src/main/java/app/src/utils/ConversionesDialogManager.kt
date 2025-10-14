@@ -76,9 +76,9 @@ class ConversionesDialogManager(
         llConversionesContainer.visibility = View.GONE
         tvError.visibility = View.GONE
         
-        // Llamar al endpoint
+        // Llamar al endpoint con soporte de caché
         lifecycleScope.launch {
-            val result = conversionesRepository.obtenerConversiones(productoId)
+            val result = conversionesRepository.obtenerConversiones(productoId, context)
             when (result) {
                 is Result.Success -> {
                     mostrarConversionesExitosas(
@@ -86,7 +86,9 @@ class ConversionesDialogManager(
                         tvPrecioOriginal,
                         tvMonedaOriginal,
                         llConversionesContainer,
-                        tvFechaActualizacion
+                        tvFechaActualizacion,
+                        result.isFromCache,
+                        result.isCacheExpired
                     )
                     pbLoading.visibility = View.GONE
                     llConversionesContainer.visibility = View.VISIBLE
@@ -97,7 +99,6 @@ class ConversionesDialogManager(
                     tvError.text = "Error: ${result.message}"
                 }
                 is Result.Loading -> {
-                    // Este caso no debería ocurrir ya que el repository no devuelve Loading
                     pbLoading.visibility = View.VISIBLE
                     llConversionesContainer.visibility = View.GONE
                     tvError.visibility = View.GONE
@@ -113,7 +114,9 @@ class ConversionesDialogManager(
         tvPrecioOriginal: TextView,
         tvMonedaOriginal: TextView,
         container: LinearLayout,
-        tvFechaActualizacion: TextView
+        tvFechaActualizacion: TextView,
+        isFromCache: Boolean = false,
+        isCacheExpired: Boolean = false
     ) {
         // Mostrar precio original
         tvPrecioOriginal.text = String.format(Locale.US, "%.0f", data.precioOriginal)
@@ -142,14 +145,22 @@ class ConversionesDialogManager(
             container.addView(itemView)
         }
 
-        // Mostrar fecha de actualización
+        // Mostrar fecha de actualización con indicador de caché
         try {
             val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US)
             val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US)
             val date = inputFormat.parse(data.fechaActualizacion)
-            date?.let {
-                tvFechaActualizacion.text = "Actualizado: ${outputFormat.format(it)}"
+
+            val fechaText = date?.let { outputFormat.format(it) } ?: "Fecha desconocida"
+
+            // Agregar indicador visual de caché
+            val cacheIndicator = when {
+                isFromCache && isCacheExpired -> " 📦⚠️ (Caché expirado - Sin internet)"
+                isFromCache -> " 📦 (Desde caché)"
+                else -> " 🌐 (Datos actualizados)"
             }
+
+            tvFechaActualizacion.text = "Actualizado: $fechaText$cacheIndicator"
         } catch (e: Exception) {
             tvFechaActualizacion.text = "Actualizado: ${data.fechaActualizacion}"
         }

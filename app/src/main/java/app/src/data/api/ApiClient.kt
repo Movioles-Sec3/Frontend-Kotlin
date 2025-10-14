@@ -12,9 +12,13 @@ object ApiClient {
     // ⚠️ CAMBIAR ESTO: Usa la IP de tu máquina en la red local para pruebas desde dispositivo físico
     // Para emulador Android: usa "10.0.2.2"
     // Para dispositivo físico: usa la IP de tu PC (ej: "192.168.10.16")
-    private const val BASE_URL = "http://192.168.0.5:8080/"
+    private const val BASE_URL = "http://192.168.10.11:8080/"
 
     private var token: String? = null
+
+    // 🧪 MODO DEBUG: Simular que no hay internet (para probar caché)
+    // Cambiar a true para forzar que todas las peticiones fallen y usar caché
+    var forceOfflineMode: Boolean = false
 
     fun setToken(newToken: String?) {
         token = newToken
@@ -34,7 +38,7 @@ object ApiClient {
                 .addHeader("Authorization", "Bearer $token")
                 .build()
         } else {
-            request
+             request
         }
         chain.proceed(newRequest)
     }
@@ -42,9 +46,9 @@ object ApiClient {
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .addInterceptor(authInterceptor)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .writeTimeout(5, TimeUnit.SECONDS)
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()

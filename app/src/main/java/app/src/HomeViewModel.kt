@@ -1,5 +1,6 @@
 package app.src
 
+import android.app.Application
 import androidx.lifecycle.*
 import app.src.data.models.Producto
 import app.src.data.repositories.ProductoRepository
@@ -44,7 +45,7 @@ sealed class HomeUiState {
  * Lifecycle:
  * - Triggers an initial load of recommended products in [init].
  */
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Repository used to retrieve product data. */
     private val productoRepository = ProductoRepository()
@@ -87,7 +88,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
 
-            when (val result = productoRepository.obtenerProductosRecomendados()) {
+            when (val result = productoRepository.obtenerProductosRecomendados(getApplication())) {
                 is Result.Success -> {
                     // Limitar a máximo 5 productos recomendados
                     val productosLimitados = result.data.take(5)

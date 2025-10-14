@@ -1,5 +1,6 @@
 package app.src
 
+import android.app.Application
 import androidx.lifecycle.*
 import app.src.data.models.TipoProducto
 import app.src.data.repositories.ProductoRepository
@@ -41,7 +42,7 @@ sealed class CategoryUiState {
  * - Exposes lifecycle-aware [LiveData] with a unidirectional state model via [CategoryUiState].
  * - Encapsulates mutable state and exposes it as an immutable observable for the view layer.
  */
-class CategoryViewModel : ViewModel() {
+class CategoryViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Repository that provides product-related data operations. */
     private val repo = ProductoRepository()
@@ -67,7 +68,7 @@ class CategoryViewModel : ViewModel() {
     fun loadCategories() {
         viewModelScope.launch {
             _uiState.value = CategoryUiState.Loading
-            when (val result = repo.listarTipos()) {
+            when (val result = repo.listarTipos(getApplication())) {
                 is Result.Success -> {
                     _uiState.value = CategoryUiState.Success(result.data)
                 }

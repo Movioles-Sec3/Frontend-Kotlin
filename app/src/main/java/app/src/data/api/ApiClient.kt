@@ -16,6 +16,10 @@ object ApiClient {
 
     private var token: String? = null
 
+    // 🧪 MODO DEBUG: Simular que no hay internet (para probar caché)
+    // Cambiar a true para forzar que todas las peticiones fallen y usar caché
+    var forceOfflineMode: Boolean = false
+
     fun setToken(newToken: String?) {
         token = newToken
     }
@@ -34,7 +38,7 @@ object ApiClient {
                 .addHeader("Authorization", "Bearer $token")
                 .build()
         } else {
-            request
+             request
         }
         chain.proceed(newRequest)
     }
@@ -42,9 +46,9 @@ object ApiClient {
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .addInterceptor(authInterceptor)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .writeTimeout(5, TimeUnit.SECONDS)
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()

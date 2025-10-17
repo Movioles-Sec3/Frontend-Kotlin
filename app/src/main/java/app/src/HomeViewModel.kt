@@ -1,11 +1,17 @@
 package app.src
 
 import android.app.Application
+import android.os.Build
 import androidx.lifecycle.*
 import app.src.data.models.Producto
 import app.src.data.repositories.ProductoRepository
 import app.src.data.repositories.Result
+import app.src.utils.ImagePreloader
+import app.src.utils.PerformanceMetrics
+import app.src.utils.NetworkUtils
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import android.util.Log
 
 /**
  * Represents the UI contract for the Home screen.
@@ -64,6 +70,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _productosRecomendados = MutableLiveData<List<Producto>>()
     val productosRecomendados: LiveData<List<Producto>> = _productosRecomendados
 
+    companion object {
+        private const val TAG = "HomeViewModel"
+
+        // Flag para alternar entre carga paralela y secuencial
+        // En producción, esto se puede controlar con A/B testing o configuración remota
+        var useParallelLoading = true
+    }
+
     /**
      * Initializes the ViewModel by starting the initial data load.
      */
@@ -88,20 +102,200 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
 
-            when (val result = productoRepository.obtenerProductosRecomendados(getApplication())) {
-                is Result.Success -> {
-                    // Limitar a máximo 5 productos recomendados
-                    val productosLimitados = result.data.take(5)
-                    _productosRecomendados.value = productosLimitados
-                    _uiState.value = HomeUiState.Success(productosLimitados)
+            // Tiempos de medición
+            val startTime = System.currentTimeMillis()
+            var catalogLoadTime = 0L
+            var imagesLoadTime = 0L
+
+            try {
+                if (useParallelLoading) {
+                    // CARGA PARALELA: Catálogo e imágenes simultáneamente
+                    cargarEnParalelo(startTime)
+                } else {
+                    // CARGA SECUENCIAL: Catálogo primero, luego imágenes
+                    cargarEnSecuencia(startTime)
                 }
-                is Result.Error -> {
-                    _uiState.value = HomeUiState.Error(result.message)
-                }
-                else -> {
-                    _uiState.value = HomeUiState.Error("Error desconocido")
-                }
+
+                // Alternar método para la próxima carga (para comparar)
+                useParallelLoading = !useParallelLoading
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error al cargar productos: ${e.message}")
+                _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")
             }
+        }
+    }
+
+    /**
+     * Carga paralela: Catálogo e imágenes simultáneamente
+     */
+    private suspend fun cargarEnParalelo(startTime: Long) {
+        Log.d(TAG, "🚀 Iniciando carga PARALELA")
+
+        val catalogStartTime = System.currentTimeMillis()
+
+        // Lanzar ambas operaciones en paralelo
+        val catalogDeferred = viewModelScope.async {
+            productoRepository.obtenerProductosRecomendados(getApplication<Application>())
+        }
+
+        // Esperar resultado del catálogo
+        when (val result = catalogDeferred.await()) {
+            is Result.Success -> {
+                val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
+                val productosLimitados = result.data.take(5)
+
+                // Iniciar carga de imágenes en paralelo
+                val imageStartTime = System.currentTimeMillis()
+                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                val imagesLoadTime = if (imageUrls.isNotEmpty()) {
+                    ImagePreloader.preloadImagesParallel(imageUrls)
+                } else {
+                    0L
+                }
+
+                val totalTime = System.currentTimeMillis() - startTime
+                val menuReadyTime = totalTime // El menú está listo cuando todo está cargado
+
+                // Actualizar UI
+                _productosRecomendados.value = productosLimitados
+                _uiState.value = HomeUiState.Success(productosLimitados)
+
+                // Registrar métricas
+                registrarMetricas(
+                    loadType = PerformanceMetrics.LoadType.PARALLEL,
+                    catalogLoadTime = catalogLoadTime,
+                    imagesLoadTime = imagesLoadTime,
+                    totalTime = totalTime,
+                    menuReadyTime = menuReadyTime,
+                    productCount = productosLimitados.size
+                )
+
+                Log.d(TAG, """
+                    ✅ Carga PARALELA completada:
+                    - Catálogo: ${catalogLoadTime}ms
+                    - Imágenes: ${imagesLoadTime}ms
+                    - Total: ${totalTime}ms
+                """.trimIndent())
+            }
+            is Result.Error -> {
+                _uiState.value = HomeUiState.Error(result.message)
+            }
+            else -> {
+                _uiState.value = HomeUiState.Error("Error desconocido")
+            }
+        }
+    }
+
+    /**
+     * Carga secuencial: Catálogo primero, luego imágenes
+     */
+    private suspend fun cargarEnSecuencia(startTime: Long) {
+        Log.d(TAG, "📦 Iniciando carga SECUENCIAL")
+
+        // 1. Cargar catálogo primero
+        val catalogStartTime = System.currentTimeMillis()
+        when (val result = productoRepository.obtenerProductosRecomendados(getApplication<Application>())) {
+            is Result.Success -> {
+                val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
+                val productosLimitados = result.data.take(5)
+
+                // Actualizar UI con productos (menú ya es usable)
+                _productosRecomendados.value = productosLimitados
+                _uiState.value = HomeUiState.Success(productosLimitados)
+
+                // 2. Luego cargar imágenes
+                val imageStartTime = System.currentTimeMillis()
+                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                val imagesLoadTime = if (imageUrls.isNotEmpty()) {
+                    ImagePreloader.preloadImagesSequential(imageUrls)
+                } else {
+                    0L
+                }
+
+                val totalTime = System.currentTimeMillis() - startTime
+                val menuReadyTime = catalogLoadTime // El menú está listo después del catálogo
+
+                // Registrar métricas
+                registrarMetricas(
+                    loadType = PerformanceMetrics.LoadType.SEQUENTIAL,
+                    catalogLoadTime = catalogLoadTime,
+                    imagesLoadTime = imagesLoadTime,
+                    totalTime = totalTime,
+                    menuReadyTime = menuReadyTime,
+                    productCount = productosLimitados.size
+                )
+
+                Log.d(TAG, """
+                    ✅ Carga SECUENCIAL completada:
+                    - Catálogo: ${catalogLoadTime}ms
+                    - Imágenes: ${imagesLoadTime}ms
+                    - Total: ${totalTime}ms
+                    - Menú listo en: ${menuReadyTime}ms
+                """.trimIndent())
+            }
+            is Result.Error -> {
+                _uiState.value = HomeUiState.Error(result.message)
+            }
+            else -> {
+                _uiState.value = HomeUiState.Error("Error desconocido")
+            }
+        }
+    }
+
+    /**
+     * Registra métricas de rendimiento
+     */
+    private suspend fun registrarMetricas(
+        loadType: PerformanceMetrics.LoadType,
+        catalogLoadTime: Long,
+        imagesLoadTime: Long,
+        totalTime: Long,
+        menuReadyTime: Long,
+        productCount: Int
+    ) {
+        val context = getApplication<Application>()
+        val networkType = getNetworkType()
+        val deviceTier = getDeviceTier()
+
+        PerformanceMetrics.recordMeasurement(
+            context = context,
+            loadType = loadType,
+            catalogLoadTime = catalogLoadTime,
+            imagesLoadTime = imagesLoadTime,
+            totalTime = totalTime,
+            menuReadyTime = menuReadyTime,
+            productCount = productCount,
+            networkType = networkType,
+            deviceTier = deviceTier
+        )
+    }
+
+    /**
+     * Obtiene el tipo de red actual
+     */
+    private fun getNetworkType(): String {
+        val context = getApplication<Application>()
+        val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = cm.activeNetwork ?: return "Offline"
+        val capabilities = cm.getNetworkCapabilities(network) ?: return "Unknown"
+
+        return when {
+            capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
+            else -> "Unknown"
+        }
+    }
+
+    /**
+     * Obtiene el tier del dispositivo
+     */
+    private fun getDeviceTier(): String {
+        val ram = Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        return when {
+            ram < 2000 -> "low"
+            ram < 4000 -> "mid"
+            else -> "high"
         }
     }
 

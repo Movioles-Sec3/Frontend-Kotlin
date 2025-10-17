@@ -373,4 +373,55 @@ object AnalyticsLogger {
     fun getEventCount(context: Context): Int {
         return CSVEventLogger.getEventCount(context)
     }
+
+    /**
+     * Registra métricas de rendimiento para carga de menú
+     */
+    fun logPerformanceMetric(
+        context: Context,
+        metricName: String,
+        params: Map<String, Any>
+    ) {
+        try {
+            // 1. Enviar a Firebase Analytics
+            val analytics = FirebaseAnalytics.getInstance(context)
+            val bundle = Bundle().apply {
+                params.forEach { (key, value) ->
+                    when (value) {
+                        is String -> putString(key, value)
+                        is Int -> putInt(key, value)
+                        is Long -> putLong(key, value)
+                        is Double -> putDouble(key, value)
+                        is Boolean -> putBoolean(key, value)
+                    }
+                }
+            }
+            analytics.logEvent(metricName, bundle)
+
+            Log.d(TAG, "✅ Métrica de rendimiento '$metricName' enviada a Firebase Analytics")
+
+            // 2. Enviar a Firestore
+            val timestamp = System.currentTimeMillis()
+            val firestoreData = hashMapOf(
+                "metric_name" to metricName,
+                "timestamp" to timestamp,
+                "timestamp_readable" to SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
+            )
+            firestoreData.putAll(params.mapValues { it.value.toString() })
+
+            if (hasInternetConnection(context)) {
+                firestore.collection("performance_metrics")
+                    .add(firestoreData)
+                    .addOnSuccessListener { documentReference ->
+                        Log.d(TAG, "🔥 Métrica '$metricName' guardada en Firestore: ${documentReference.id}")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "❌ Error al guardar métrica en Firestore", e)
+                    }
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al registrar métrica de rendimiento", e)
+        }
+    }
 }

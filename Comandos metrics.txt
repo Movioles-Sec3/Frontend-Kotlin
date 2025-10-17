@@ -1,0 +1,4 @@
+adb -s ZY22KC6Z2J shell "run-as app.src cat /data/data/app.src/shared_prefs/performance_metrics.xml" > temp_prefs.xml
+
+
+powershell -ExecutionPolicy Bypass -File xml_to_csv.ps1 -XmlFile temp_prefs.xml -OutputCsv performance_metrics\metrics.csv

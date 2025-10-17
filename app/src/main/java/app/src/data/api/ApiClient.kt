@@ -11,8 +11,9 @@ object ApiClient {
 
     // ⚠️ CAMBIAR ESTO: Usa la IP de tu máquina en la red local para pruebas desde dispositivo físico
     // Para emulador Android: usa "10.0.2.2"
-    // Para dispositivo físico: usa la IP de tu PC (ej: "192.168.10.16")
-    private const val BASE_URL = "http://192.168.10.11:8080/"
+    // Para dispositivo físico: usa la IP de tu PC (ej: "192.168.0.5")
+    // IMPORTANTE: El backend NO usa prefijo /api/, solo la IP:puerto
+    private const val BASE_URL = "http://192.168.0.5:8080/"
 
     private var token: String? = null
 
@@ -46,9 +47,9 @@ object ApiClient {
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .addInterceptor(authInterceptor)
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
-        .writeTimeout(5, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()

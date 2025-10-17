@@ -238,8 +238,15 @@ class HomeActivity : BaseActivity() {
 
     private fun setupExistingFunctionality() {
         // Recharge balance button
-        findViewById<Button>(R.id.btn_recharge)?.setOnClickListener {
+        val btnRecharge = findViewById<Button>(R.id.btn_recharge)
+        btnRecharge?.setOnClickListener {
             showRechargeDialog()
+        }
+
+        // NUEVO: Long press en el botón de recargar para acceder a métricas
+        btnRecharge?.setOnLongClickListener {
+            showAnalyticsInfo()
+            true
         }
 
         // Navigation to each view
@@ -265,7 +272,7 @@ class HomeActivity : BaseActivity() {
             logout()
         }
 
-        // NUEVO: Botón para ver estadísticas de eventos (long press en el balance)
+        // TAMBIÉN: Mantener el long press en el balance como alternativa
         findViewById<TextView>(R.id.tv_saldo)?.setOnLongClickListener {
             showAnalyticsInfo()
             true
@@ -295,6 +302,10 @@ class HomeActivity : BaseActivity() {
                 Log.d(TAG, "📊 Analytics CSV Path: $csvPath")
                 Log.d(TAG, "📊 Total Events: $eventCount")
                 Toast.makeText(this, "CSV path logged. Check Logcat.", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("📊 Performance") { _, _ ->
+                // Navegar a métricas de rendimiento
+                startActivity(Intent(this, PerformanceMetricsActivity::class.java))
             }
             .show()
     }

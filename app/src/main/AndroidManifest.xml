@@ -83,6 +83,11 @@
             android:name=".ProfileActivity"
             android:exported="false" />
 
+        <!-- PerformanceMetricsActivity -->
+        <activity
+            android:name=".PerformanceMetricsActivity"
+            android:exported="false" />
+
         <!-- MainActivity (mantenemos por compatibilidad) -->
         <activity
             android:name=".MainActivity"

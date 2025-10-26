@@ -1,7 +1,9 @@
 package app.src
 
+import android.app.Application
 import androidx.lifecycle.*
 import app.src.data.models.Compra
+import app.src.data.models.CompraRequest
 import app.src.data.models.DetalleCompraRequest
 import app.src.data.repositories.CompraRepository
 import app.src.data.repositories.Result
@@ -36,16 +38,11 @@ sealed class CompraUiState {
 
 /**
  * ViewModel responsible for creating purchases and loading purchase history.
- *
- * Responsibilities:
- * - Coordinates data operations with [CompraRepository].
- * - Exposes a unidirectional UI state via [uiState] for create operations.
- * - Exposes a separate observable stream for purchase history via [historial].
- * - Encapsulates mutable state and exposes immutable [LiveData] to the view layer.
+ * Con soporte para caché offline de historial y códigos QR.
  */
-class CompraViewModel : ViewModel() {
+class CompraViewModel(application: Application) : AndroidViewModel(application) {
 
-    /** Repository that provides purchase-related data operations. */
+    /** Repository que maneja operaciones de compra con caché LRU */
     private val repo = CompraRepository()
 
     // Backing property for UI state of "create purchase" flow.
@@ -61,6 +58,7 @@ class CompraViewModel : ViewModel() {
 
     /**
      * Public, immutable LiveData containing the user's purchase history.
+     * Incluye códigos QR que funcionan offline desde el caché.
      */
     val historial: LiveData<List<Compra>> = _historial
 
@@ -83,7 +81,9 @@ class CompraViewModel : ViewModel() {
     fun crearCompra(productos: List<DetalleCompraRequest>) {
         viewModelScope.launch {
             _uiState.value = CompraUiState.Loading
-            when (val result = repo.crearCompra(productos)) {
+
+            val compraRequest = CompraRequest(productos)
+            when (val result = repo.crearCompra(getApplication(), compraRequest)) {
                 is Result.Success -> {
                     _uiState.value = CompraUiState.Success(result.data)
                 }
@@ -91,7 +91,6 @@ class CompraViewModel : ViewModel() {
                     _uiState.value = CompraUiState.Error(result.message)
                 }
                 else -> {
-                    // Fallback guard for any unhandled Result variants.
                     _uiState.value = CompraUiState.Error("Error desconocido")
                 }
             }
@@ -99,24 +98,40 @@ class CompraViewModel : ViewModel() {
     }
 
     /**
-     * Loads the user's purchase history and posts it to [historial].
-     *
-     * This method is independent from the create-purchase UI state ([uiState]).
-     * Any errors are currently ignored in UI state, but can be surfaced by
-     * extending this method to emit a separate error signal if needed.
+     * Carga el historial de compras del usuario.
+     * Usa caché LRU cuando no hay conexión (incluye códigos QR).
      */
     fun cargarHistorial() {
         viewModelScope.launch {
-            when (val result = repo.historialCompras()) {
+            when (val result = repo.obtenerHistorial(getApplication())) {
                 is Result.Success -> {
                     _historial.value = result.data
                 }
                 is Result.Error -> {
-                    // Optional: surface an error via a dedicated LiveData or event channel.
+                    // Si falla, lista vacía (o mantener la existente)
+                    _historial.value = emptyList()
                 }
                 else -> {
-                    // No-op for unhandled variants; consider logging if necessary.
+                    _historial.value = emptyList()
                 }
+            }
+        }
+    }
+
+    /**
+     * Actualiza el estado de una compra (requiere internet)
+     */
+    fun actualizarEstado(compraId: Int, nuevoEstado: String) {
+        viewModelScope.launch {
+            when (repo.actualizarEstado(getApplication(), compraId, nuevoEstado)) {
+                is Result.Success -> {
+                    // Recargar historial para reflejar el cambio
+                    cargarHistorial()
+                }
+                is Result.Error -> {
+                    // Manejar error (opcional: emitir estado de error)
+                }
+                else -> {}
             }
         }
     }

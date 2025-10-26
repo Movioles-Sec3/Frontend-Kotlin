@@ -18,6 +18,7 @@ import app.src.data.repositories.Result
 import app.src.data.repositories.UsuarioRepository
 import app.src.utils.AnalyticsLogger
 import app.src.utils.CartManager
+import app.src.utils.NetworkUtils
 import app.src.utils.SessionManager
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -139,6 +140,20 @@ class OrderSummaryActivity : BaseActivity() {
         btnCheckout.setOnClickListener {
             if (CartManager.isEmpty()) {
                 Toast.makeText(this, "Cart is empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // ✅ VALIDAR CONEXIÓN A INTERNET ANTES DE PROCESAR COMPRA
+            if (!NetworkUtils.isNetworkAvailable(this)) {
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Sin Conexión a Internet")
+                    .setMessage("No es posible realizar la compra sin conexión a internet.\n\nTu carrito se ha guardado y estará disponible cuando vuelvas a tener conexión.")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton("Entendido") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .show()
+                Log.w(TAG, "⚠️ Intento de compra sin internet - Carrito guardado")
                 return@setOnClickListener
             }
 

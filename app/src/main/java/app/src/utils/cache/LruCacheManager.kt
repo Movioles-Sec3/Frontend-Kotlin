@@ -6,6 +6,7 @@ import android.util.Log
 import app.src.data.models.Producto
 import app.src.data.models.ProductoConConversiones
 import app.src.data.models.TipoProducto
+import app.src.data.models.Compra
 import com.google.gson.Gson
 
 /**
@@ -263,6 +264,13 @@ class LruCacheManager private constructor(private val context: Context) {
      */
     private val productoIndividualCache: LruCache<Int, CacheEntry<Producto>>
 
+    /**
+     * Cache LRU para historial de compras/pedidos
+     * Key: String (siempre "historial_compras")
+     * Value: CacheEntry con List<Compra>
+     */
+    private val comprasCache: LruCache<String, CacheEntry<List<Compra>>>
+
     // =========================================================================
     // INICIALIZACIÓN DE CACHES
     // =========================================================================
@@ -388,6 +396,27 @@ class LruCacheManager private constructor(private val context: Context) {
                 if (evicted) {
                     totalEvictions++
                     Log.d(TAG, "🗑️ [TIPOS] Evicted del cache: $key")
+                }
+            }
+        }
+
+        // =====================================================================
+        // CACHE DE COMPRAS (HISTORIAL)
+        // =====================================================================
+        comprasCache = object : LruCache<String, CacheEntry<List<Compra>>>(tiposCacheSize) {
+            override fun sizeOf(key: String, value: CacheEntry<List<Compra>>): Int {
+                return value.sizeInBytes / 1024
+            }
+
+            override fun entryRemoved(
+                evicted: Boolean,
+                key: String,
+                oldValue: CacheEntry<List<Compra>>,
+                newValue: CacheEntry<List<Compra>>?
+            ) {
+                if (evicted) {
+                    totalEvictions++
+                    Log.d(TAG, "🗑️ [COMPRAS] Evicted del cache: $key")
                 }
             }
         }
@@ -580,6 +609,59 @@ class LruCacheManager private constructor(private val context: Context) {
     }
 
     // =========================================================================
+    // MÉTODOS PÚBLICOS - HISTORIAL DE COMPRAS
+    // =========================================================================
+
+    /**
+     * Guarda el historial de compras en el cache
+     * TTL: 24 horas (mismo que conversiones)
+     */
+    fun putCompras(compras: List<Compra>) {
+        try {
+            val json = gson.toJson(compras)
+            val sizeInBytes = json.toByteArray().size
+
+            val entry = CacheEntry(
+                data = compras,
+                timestamp = System.currentTimeMillis(),
+                sizeInBytes = sizeInBytes
+            )
+
+            comprasCache.put("historial_compras", entry)
+            Log.d(TAG, "✅ [COMPRAS] Guardadas en cache: ${compras.size} compras (${sizeInBytes / 1024} KB)")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al guardar compras en cache: ${e.message}")
+        }
+    }
+
+    /**
+     * Obtiene el historial de compras del cache
+     * @return CacheEntry con las compras o null si no existe o expiró
+     */
+    fun getCompras(): CacheEntry<List<Compra>>? {
+        val entry = comprasCache.get("historial_compras")
+
+        if (entry == null) {
+            totalMisses++
+            Log.d(TAG, "❌ [COMPRAS] Cache MISS")
+            return null
+        }
+
+        // Usar TTL de 24 horas (igual que conversiones)
+        if (entry.isExpired(CONVERSIONES_TTL)) {
+            totalMisses++
+            comprasCache.remove("historial_compras")
+            val ageHours = entry.getAge() / (60 * 60 * 1000)
+            Log.d(TAG, "⏰ [COMPRAS] Cache EXPIRADO (edad: $ageHours h)")
+            return null
+        }
+
+        totalHits++
+        Log.d(TAG, "✅ [COMPRAS] Cache HIT: ${entry.data.size} compras")
+        return entry
+    }
+
+    // =========================================================================
     // MÉTODOS DE GESTIÓN Y LIMPIEZA
     // =========================================================================
 
@@ -591,6 +673,7 @@ class LruCacheManager private constructor(private val context: Context) {
         conversionesCache.evictAll()
         tiposCache.evictAll()
         productoIndividualCache.evictAll()
+        comprasCache.evictAll()
         Log.d(TAG, "🗑️ Todos los caches limpiados")
     }
 
@@ -645,6 +728,18 @@ class LruCacheManager private constructor(private val context: Context) {
             evictedCount++
         }
 
+        // Evict compras expiradas
+        val compraKeys = mutableListOf<String>()
+        comprasCache.snapshot().forEach { (key, entry) ->
+            if (entry.isExpired(CONVERSIONES_TTL)) {
+                compraKeys.add(key)
+            }
+        }
+        compraKeys.forEach {
+            comprasCache.remove(it)
+            evictedCount++
+        }
+
         Log.d(TAG, "🗑️ Limpieza de expirados: $evictedCount entradas eliminadas")
     }
 
@@ -682,4 +777,3 @@ class LruCacheManager private constructor(private val context: Context) {
         Log.d(TAG, stats.generateReport())
     }
 }
-

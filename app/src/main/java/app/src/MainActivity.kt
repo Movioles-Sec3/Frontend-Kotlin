@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import app.src.utils.AnalyticsLogger
+import app.src.utils.CartManager
 
 class MainActivity : BaseActivity() {
 
@@ -12,6 +13,9 @@ class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Inicializar CartManager con persistencia
+        CartManager.init(this)
 
         // Iniciar timer de app launch
         appLaunchStartTime = System.currentTimeMillis()

@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.Log
 import app.src.data.api.ApiClient
 import app.src.data.models.ProductoConConversiones
-import app.src.utils.ConversionCacheManager
+import app.src.utils.cache.LruCacheManager
 import app.src.utils.NetworkUtils
 
 class ConversionesRepository {
@@ -17,24 +17,20 @@ class ConversionesRepository {
         context: Context
     ): Result<ProductoConConversiones> {
         return try {
-            // 1. PRIMERO: Verificar si hay datos en caché válidos (independiente de internet)
-            val cachedData = ConversionCacheManager.getConversion(context, productoId)
+            val cacheManager = LruCacheManager.getInstance(context)
 
-            if (cachedData != null) {
-                val (data, isValid) = cachedData
+            // 1. PRIMERO: Verificar si hay datos en LRU cache válidos (independiente de internet)
+            val cachedEntry = cacheManager.getConversion(productoId)
 
-                if (isValid) {
-                    // El caché es válido (menos de 24 horas) - USAR CACHÉ
-                    Log.d(TAG, "📦 Usando caché válido (no expirado) - Evitando llamada a API")
-                    return Result.Success(data, isFromCache = true, isCacheExpired = false)
-                } else {
-                    Log.d(TAG, "⚠️ Caché expirado (más de 24 horas), intentando actualizar desde API...")
-                }
-            } else {
-                Log.d(TAG, "📭 No hay caché disponible, obteniendo desde API...")
+            if (cachedEntry != null) {
+                // El LRU cache tiene los datos y son válidos (no expirados)
+                Log.d(TAG, "📦 Usando conversiones del LRU cache (válidas) - Evitando llamada a API")
+                return Result.Success(cachedEntry.data, isFromCache = true, isCacheExpired = false)
             }
 
-            // 2. Si el caché no existe o está expirado, verificar conexión a internet
+            Log.d(TAG, "📭 No hay conversiones en LRU cache, obteniendo desde API...")
+
+            // 2. Si el cache no existe o está expirado, verificar conexión a internet
             val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
 
             if (hasInternet) {
@@ -47,66 +43,28 @@ class ConversionesRepository {
                     if (response.isSuccessful && response.body() != null) {
                         val data = response.body()!!
 
-                        // 4. Guardar en caché para uso futuro
-                        ConversionCacheManager.saveConversion(context, productoId, data)
+                        // 4. Guardar en LRU cache para uso futuro
+                        cacheManager.putConversion(productoId, data)
 
-                        Log.d(TAG, "✅ Datos obtenidos de API y guardados en caché")
+                        Log.d(TAG, "✅ Conversiones obtenidas de API y guardadas en LRU cache")
                         Result.Success(data, isFromCache = false, isCacheExpired = false)
                     } else {
-                        // Si la API falla, intentar usar caché aunque esté expirado
-                        Log.w(TAG, "⚠️ API respondió con error, usando caché expirado como respaldo...")
-                        usarCacheExpiradoComoUltimoRecurso(cachedData)
+                        // Si la API falla, no hay cache para usar como respaldo
+                        Log.e(TAG, "❌ API respondió con error y no hay cache disponible")
+                        Result.Error("Error al obtener conversiones: ${response.code()}")
                     }
                 } catch (e: Exception) {
-                    // Si hay excepción en la API, intentar usar caché aunque esté expirado
-                    Log.e(TAG, "❌ Error en API: ${e.message}, usando caché expirado como respaldo...")
-                    usarCacheExpiradoComoUltimoRecurso(cachedData)
+                    // Si hay excepción en la API, no hay cache para usar
+                    Log.e(TAG, "❌ Error en API: ${e.message}")
+                    Result.Error("Error de conexión: ${e.message}")
                 }
             } else {
-                // 5. No hay internet: usar caché aunque esté expirado
-                Log.d(TAG, "📵 Sin internet, usando caché como respaldo...")
-                usarCacheExpiradoComoUltimoRecurso(cachedData)
+                // 5. No hay internet y tampoco hay cache
+                Log.e(TAG, "📵 Sin internet y sin datos en LRU cache disponibles")
+                Result.Error("No hay conexión a internet y no hay datos en caché disponibles")
             }
         } catch (e: Exception) {
             Result.Error("Error inesperado: ${e.message}")
-        }
-    }
-
-    /**
-     * Usa el caché expirado como último recurso cuando no hay otra opción
-     */
-    private fun usarCacheExpiradoComoUltimoRecurso(
-        cachedData: Pair<ProductoConConversiones, Boolean>?
-    ): Result<ProductoConConversiones> {
-        return if (cachedData != null) {
-            val (data, _) = cachedData
-            Log.d(TAG, "⚠️ Usando caché expirado como último recurso")
-            Result.Success(data, isFromCache = true, isCacheExpired = true)
-        } else {
-            Log.e(TAG, "❌ No hay datos en caché disponibles")
-            Result.Error("No hay conexión a internet y no hay datos en caché disponibles")
-        }
-    }
-
-    /**
-     * Intenta usar el caché como respaldo cuando no hay internet o la API falla
-     */
-    private fun usarCacheComoFallback(context: Context, productoId: Int): Result<ProductoConConversiones> {
-        val cachedData = ConversionCacheManager.getConversion(context, productoId)
-
-        return if (cachedData != null) {
-            val (data, isValid) = cachedData
-
-            if (isValid) {
-                Log.d(TAG, "✅ Usando caché válido (no expirado)")
-            } else {
-                Log.d(TAG, "⚠️ Usando caché expirado (sin internet disponible)")
-            }
-
-            Result.Success(data, isFromCache = true, isCacheExpired = !isValid)
-        } else {
-            Log.e(TAG, "❌ No hay datos en caché disponibles")
-            Result.Error("No hay conexión a internet y no hay datos en caché disponibles")
         }
     }
 }

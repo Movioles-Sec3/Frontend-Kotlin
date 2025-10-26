@@ -313,4 +313,45 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         // Aquí podrías agregar lógica adicional si es necesario
         // Por ejemplo, analytics, tracking, etc.
     }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════════════
+     * ESTRATEGIA DE GESTIÓN DE MEMORIA #3: LIMPIEZA DE RECURSOS EN ViewModel
+     * ═══════════════════════════════════════════════════════════════════════════
+     *
+     * onCleared() es llamado por Android cuando el ViewModel ya no es necesario:
+     *
+     * Cuándo se llama:
+     * 1. Activity/Fragment se destruye permanentemente (no por rotación)
+     * 2. Usuario sale de la pantalla y no vuelve
+     * 3. Sistema mata el proceso por falta de memoria
+     *
+     * Qué hacer aquí:
+     * 1. Liberar referencias a objetos pesados (Bitmaps, grandes listas)
+     * 2. Cancelar operaciones pendientes (aunque viewModelScope ya lo hace)
+     * 3. Limpiar LiveData para evitar memory leaks
+     * 4. Cerrar recursos (archivos, streams, conexiones)
+     *
+     * POR QUÉ ES IMPORTANTE:
+     * - Previene memory leaks si hay referencias circulares
+     * - Libera memoria para otras apps/procesos
+     * - Mejora rendimiento general del sistema
+     * - Reduce probabilidad de OutOfMemoryError
+     *
+     * NOTA: viewModelScope ya cancela corrutinas automáticamente,
+     * pero la limpieza explícita ayuda al GC y documenta la intención
+     */
+    override fun onCleared() {
+        super.onCleared()
+        Log.d(TAG, "🧹 HomeViewModel: Limpiando recursos")
+
+        // Limpiar LiveData para liberar referencias a listas de productos
+        _productosRecomendados.value = null
+        _uiState.value = null
+
+        // Las corrutinas en viewModelScope se cancelan automáticamente,
+        // pero podemos hacer limpieza adicional si es necesario
+
+        Log.d(TAG, "✅ HomeViewModel: Recursos liberados correctamente")
+    }
 }

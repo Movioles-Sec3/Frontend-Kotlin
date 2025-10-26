@@ -12,6 +12,12 @@ import java.net.URL
 /**
  * Sistema de precarga de imágenes con caché en memoria
  * Soporta carga paralela y secuencial para comparar rendimiento
+ *
+ * ESTRATEGIAS DE GESTIÓN DE MEMORIA IMPLEMENTADAS:
+ * 1. LRU Cache con límite adaptativo (12.5% de heap)
+ * 2. Optimización de bitmaps con RGB_565 (reduce 50% de memoria)
+ * 3. Reciclaje de bitmaps evictados
+ * 4. Reducción de caché bajo presión (trimCache)
  */
 object ImagePreloader {
     private const val TAG = "ImagePreloader"
@@ -24,6 +30,34 @@ object ImagePreloader {
         object : LruCache<String, Bitmap>(cacheSize) {
             override fun sizeOf(key: String, bitmap: Bitmap): Int {
                 return bitmap.byteCount / 1024
+            }
+
+            /**
+             * ═══════════════════════════════════════════════════════════════
+             * ESTRATEGIA: RECICLAJE AUTOMÁTICO DE BITMAPS EVICTADOS
+             * ═══════════════════════════════════════════════════════════════
+             *
+             * Cuando LruCache elimina un bitmap (por espacio), lo reciclamos
+             *
+             * ¿Por qué es importante?
+             * - Bitmaps ocupan memoria nativa (fuera de heap Java)
+             * - bitmap.recycle() libera la memoria nativa inmediatamente
+             * - Sin recycle(): GC lo liberaría eventualmente (más lento)
+             *
+             * Cuándo se llama:
+             * - evicted=true: LRU eliminó por falta de espacio
+             * - evicted=false: Eliminación manual (clear, remove)
+             */
+            override fun entryRemoved(
+                evicted: Boolean,
+                key: String,
+                oldValue: Bitmap,
+                newValue: Bitmap?
+            ) {
+                if (evicted && !oldValue.isRecycled) {
+                    oldValue.recycle()
+                    Log.d(TAG, "♻️ Bitmap reciclado: $key")
+                }
             }
         }
     }
@@ -87,7 +121,51 @@ object ImagePreloader {
     }
 
     /**
-     * Carga una imagen y la guarda en caché
+     * ═══════════════════════════════════════════════════════════════════════════
+     * ESTRATEGIA: REDUCCIÓN DE CACHÉ BAJO PRESIÓN DE MEMORIA
+     * ═══════════════════════════════════════════════════════════════════════════
+     *
+     * Reduce el caché a un porcentaje del tamaño máximo
+     *
+     * @param percentage Porcentaje del caché a mantener (0-100)
+     *
+     * Ejemplo:
+     * - Cache máximo: 8MB
+     * - trimCache(50) → Reduce a 4MB
+     * - Elimina las imágenes menos usadas (LRU)
+     *
+     * Cuándo se usa:
+     * - TRIM_MEMORY_RUNNING_MODERATE: trimCache(50)
+     * - Libera memoria preventivamente antes de llegar a crítico
+     */
+    fun trimCache(percentage: Int) {
+        val targetSize = (memoryCache.maxSize() * percentage) / 100
+        memoryCache.trimToSize(targetSize)
+        Log.i(TAG, "🔄 Caché reducido a $percentage% (~${targetSize}KB)")
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════════════
+     * ESTRATEGIA: OPTIMIZACIÓN DE BITMAPS CON BitmapFactory.Options
+     * ═══════════════════════════════════════════════════════════════════════════
+     *
+     * Carga una imagen y la guarda en caché con optimizaciones de memoria
+     *
+     * Optimizaciones aplicadas:
+     * 1. RGB_565 vs ARGB_8888
+     *    - ARGB_8888: 4 bytes/pixel (canal alpha)
+     *    - RGB_565: 2 bytes/pixel (sin alpha)
+     *    - Ahorro: 50% de memoria
+     *    - Trade-off: Menos colores (65K vs 16M)
+     *    - Justificación: Fotos de productos no necesitan transparencia
+     *
+     * 2. inDither = true
+     *    - Mejora calidad visual en RGB_565
+     *    - Simula más colores mediante patrones
+     *
+     * 3. inScaled = true
+     *    - Permite que Android ajuste densidad
+     *    - Mejor compatibilidad entre dispositivos
      */
     private suspend fun loadAndCacheImage(imageUrl: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
@@ -106,14 +184,26 @@ object ImagePreloader {
             connection.connect()
 
             val inputStream = connection.inputStream
-            val bitmap = BitmapFactory.decodeStream(inputStream)
+
+            // OPTIMIZACIÓN: Configurar BitmapFactory.Options para reducir memoria
+            val options = BitmapFactory.Options().apply {
+                // RGB_565: 2 bytes/pixel (vs ARGB_8888: 4 bytes/pixel)
+                inPreferredConfig = Bitmap.Config.RGB_565
+                // Permitir scaling automático
+                inScaled = true
+                // Dithering para mejor calidad visual en RGB_565
+                inDither = true
+            }
+
+            val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
             inputStream.close()
             connection.disconnect()
 
             if (bitmap != null) {
                 // Guardar en caché
                 memoryCache.put(imageUrl, bitmap)
-                Log.d(TAG, "✅ Imagen cargada y cacheada: $imageUrl")
+                val sizeKB = bitmap.byteCount / 1024
+                Log.d(TAG, "✅ Imagen cargada: $imageUrl (${sizeKB}KB, ${bitmap.config})")
             } else {
                 Log.w(TAG, "⚠️ No se pudo decodificar imagen: $imageUrl")
             }
@@ -169,4 +259,3 @@ object ImagePreloader {
         """.trimIndent()
     }
 }
-

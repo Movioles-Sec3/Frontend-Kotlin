@@ -5,7 +5,7 @@ import android.util.Log
 import app.src.data.api.ApiClient
 import app.src.data.models.*
 import app.src.utils.NetworkUtils
-import app.src.utils.ProductoCacheManager
+import app.src.utils.cache.LruCacheManager
 import retrofit2.Response
 
 class ProductoRepository {
@@ -19,11 +19,14 @@ class ProductoRepository {
         disponible: Boolean? = true
     ): Result<List<Producto>> {
         return try {
+            val cacheManager = LruCacheManager.getInstance(context)
+            val cacheKey = cacheManager.generateProductosKey(idTipo, disponible)
+
             // 1. Verificar internet PRIMERO
             val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
 
             if (hasInternet) {
-                // 2. HAY INTERNET: Siempre obtener datos frescos de la API (NO usar caché)
+                // 2. HAY INTERNET: Siempre obtener datos frescos de la API
                 Log.d(TAG, "🌐 Internet disponible, obteniendo productos frescos de la API...")
 
                 try {
@@ -31,29 +34,25 @@ class ProductoRepository {
                     if (response.isSuccessful && response.body() != null) {
                         val productos = response.body()!!
 
-                        // Generar key y guardar en caché para uso futuro (cuando no haya internet)
-                        val cacheKey = ProductoCacheManager.generateKey(idTipo, disponible)
-                        ProductoCacheManager.saveProductos(context, cacheKey, productos)
+                        // Guardar en LRU cache
+                        cacheManager.putProductos(cacheKey, productos)
 
-                        Log.d(TAG, "✅ ${productos.size} productos obtenidos de API y guardados en caché")
+                        Log.d(TAG, "✅ ${productos.size} productos obtenidos de API y guardados en LRU cache")
                         Result.Success(productos, isFromCache = false, isCacheExpired = false)
                     } else {
-                        // API falló, intentar usar caché como respaldo
-                        Log.w(TAG, "⚠️ API respondió con error, intentando usar caché como respaldo...")
-                        val cacheKey = ProductoCacheManager.generateKey(idTipo, disponible)
-                        usarCacheComoRespaldo(context, cacheKey)
+                        // API falló, intentar usar cache como respaldo
+                        Log.w(TAG, "⚠️ API respondió con error, intentando usar LRU cache como respaldo...")
+                        usarCacheComoRespaldo(cacheManager, cacheKey)
                     }
                 } catch (e: Exception) {
-                    // Error en API, intentar usar caché
-                    Log.e(TAG, "❌ Error en API: ${e.message}, intentando usar caché...")
-                    val cacheKey = ProductoCacheManager.generateKey(idTipo, disponible)
-                    usarCacheComoRespaldo(context, cacheKey)
+                    // Error en API, intentar usar cache
+                    Log.e(TAG, "❌ Error en API: ${e.message}, intentando usar LRU cache...")
+                    usarCacheComoRespaldo(cacheManager, cacheKey)
                 }
             } else {
-                // 3. NO HAY INTERNET: Usar caché como respaldo
-                Log.d(TAG, "📵 Sin internet, buscando productos en caché...")
-                val cacheKey = ProductoCacheManager.generateKey(idTipo, disponible)
-                usarCacheComoRespaldo(context, cacheKey)
+                // 3. NO HAY INTERNET: Usar cache como respaldo
+                Log.d(TAG, "📵 Sin internet, buscando productos en LRU cache...")
+                usarCacheComoRespaldo(cacheManager, cacheKey)
             }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error: ${e.message}")
@@ -61,27 +60,22 @@ class ProductoRepository {
         }
     }
 
-    private fun usarCacheComoRespaldo(context: Context, cacheKey: String): Result<List<Producto>> {
-        val cachedData = ProductoCacheManager.getProductos(context, cacheKey)
+    private fun usarCacheComoRespaldo(cacheManager: LruCacheManager, cacheKey: String): Result<List<Producto>> {
+        val cachedEntry = cacheManager.getProductos(cacheKey)
 
-        return if (cachedData != null) {
-            val (productos, isValid) = cachedData
-
-            if (isValid) {
-                Log.d(TAG, "📦 Usando ${productos.size} productos del caché (válido)")
-            } else {
-                Log.d(TAG, "📦⚠️ Usando ${productos.size} productos del caché (expirado)")
-            }
-
-            Result.Success(productos, isFromCache = true, isCacheExpired = !isValid)
+        return if (cachedEntry != null) {
+            Log.d(TAG, "📦 Usando ${cachedEntry.data.size} productos del LRU cache")
+            Result.Success(cachedEntry.data, isFromCache = true, isCacheExpired = false)
         } else {
-            Log.e(TAG, "❌ No hay productos en caché disponibles")
+            Log.e(TAG, "❌ No hay productos en LRU cache disponibles")
             Result.Error("No hay conexión a internet y no hay datos en caché disponibles")
         }
     }
 
     suspend fun obtenerProducto(context: Context, productoId: Int): Result<Producto> {
         return try {
+            val cacheManager = LruCacheManager.getInstance(context)
+
             // 1. Verificar internet PRIMERO
             val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
 
@@ -93,39 +87,40 @@ class ProductoRepository {
                 if (response.isSuccessful && response.body() != null) {
                     val producto = response.body()!!
 
-                    // Guardar en caché para uso futuro
-                    ProductoCacheManager.saveProducto(context, productoId, producto)
+                    // Guardar en LRU cache
+                    cacheManager.putProducto(productoId, producto)
 
-                    Log.d(TAG, "✅ Producto $productoId obtenido de API y guardado en caché")
+                    Log.d(TAG, "✅ Producto $productoId obtenido de API y guardado en LRU cache")
                     Result.Success(producto, isFromCache = false, isCacheExpired = false)
                 } else {
-                    usarProductoCacheComoRespaldo(context, productoId)
+                    usarProductoCacheComoRespaldo(cacheManager, productoId)
                 }
             } else {
-                // NO HAY INTERNET: Usar caché
-                Log.d(TAG, "📵 Sin internet, buscando producto $productoId en caché...")
-                usarProductoCacheComoRespaldo(context, productoId)
+                // NO HAY INTERNET: Usar cache
+                Log.d(TAG, "📵 Sin internet, buscando producto $productoId en LRU cache...")
+                usarProductoCacheComoRespaldo(cacheManager, productoId)
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Error de conexión")
         }
     }
 
-    private fun usarProductoCacheComoRespaldo(context: Context, productoId: Int): Result<Producto> {
-        val cachedData = ProductoCacheManager.getProducto(context, productoId)
+    private fun usarProductoCacheComoRespaldo(cacheManager: LruCacheManager, productoId: Int): Result<Producto> {
+        val cachedEntry = cacheManager.getProducto(productoId)
 
-        return if (cachedData != null) {
-            val (producto, isValid) = cachedData
-            Log.d(TAG, if (isValid) "📦 Usando producto del caché (válido)" else "📦⚠️ Usando producto del caché (expirado)")
-            Result.Success(producto, isFromCache = true, isCacheExpired = !isValid)
+        return if (cachedEntry != null) {
+            Log.d(TAG, "📦 Usando producto del LRU cache")
+            Result.Success(cachedEntry.data, isFromCache = true, isCacheExpired = false)
         } else {
-            Log.e(TAG, "❌ No hay producto en caché disponible")
+            Log.e(TAG, "❌ No hay producto en LRU cache disponible")
             Result.Error("No hay conexión a internet y no hay datos en caché disponibles")
         }
     }
 
     suspend fun listarTipos(context: Context): Result<List<TipoProducto>> {
         return try {
+            val cacheManager = LruCacheManager.getInstance(context)
+
             // 1. Verificar internet PRIMERO
             val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
 
@@ -137,39 +132,41 @@ class ProductoRepository {
                 if (response.isSuccessful && response.body() != null) {
                     val tipos = response.body()!!
 
-                    // Guardar en caché para uso futuro
-                    ProductoCacheManager.saveTipos(context, tipos)
+                    // Guardar en LRU cache
+                    cacheManager.putTipos(tipos)
 
-                    Log.d(TAG, "✅ ${tipos.size} tipos obtenidos de API y guardados en caché")
+                    Log.d(TAG, "✅ ${tipos.size} tipos obtenidos de API y guardados en LRU cache")
                     Result.Success(tipos, isFromCache = false, isCacheExpired = false)
                 } else {
-                    usarTiposCacheComoRespaldo(context)
+                    usarTiposCacheComoRespaldo(cacheManager)
                 }
             } else {
-                // NO HAY INTERNET: Usar caché
-                Log.d(TAG, "📵 Sin internet, buscando tipos en caché...")
-                usarTiposCacheComoRespaldo(context)
+                // NO HAY INTERNET: Usar cache
+                Log.d(TAG, "📵 Sin internet, buscando tipos en LRU cache...")
+                usarTiposCacheComoRespaldo(cacheManager)
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Error de conexión")
         }
     }
 
-    private fun usarTiposCacheComoRespaldo(context: Context): Result<List<TipoProducto>> {
-        val cachedData = ProductoCacheManager.getTipos(context)
+    private fun usarTiposCacheComoRespaldo(cacheManager: LruCacheManager): Result<List<TipoProducto>> {
+        val cachedEntry = cacheManager.getTipos()
 
-        return if (cachedData != null) {
-            val (tipos, isValid) = cachedData
-            Log.d(TAG, if (isValid) "📦 Usando ${tipos.size} tipos del caché (válido)" else "📦⚠️ Usando ${tipos.size} tipos del caché (expirado)")
-            Result.Success(tipos, isFromCache = true, isCacheExpired = !isValid)
+        return if (cachedEntry != null) {
+            Log.d(TAG, "📦 Usando ${cachedEntry.data.size} tipos del LRU cache")
+            Result.Success(cachedEntry.data, isFromCache = true, isCacheExpired = false)
         } else {
-            Log.e(TAG, "❌ No hay tipos en caché disponibles")
+            Log.e(TAG, "❌ No hay tipos en LRU cache disponibles")
             Result.Error("No hay conexión a internet y no hay datos en caché disponibles")
         }
     }
 
     suspend fun obtenerProductosRecomendados(context: Context): Result<List<Producto>> {
         return try {
+            val cacheManager = LruCacheManager.getInstance(context)
+            val cacheKey = "productos_recomendados"
+
             // 1. Verificar internet PRIMERO
             val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
 
@@ -181,21 +178,18 @@ class ProductoRepository {
                 if (response.isSuccessful && response.body() != null) {
                     val productos = response.body()!!
 
-                    // Guardar en caché para uso futuro
-                    val cacheKey = "productos_recomendados"
-                    ProductoCacheManager.saveProductos(context, cacheKey, productos)
+                    // Guardar en LRU cache
+                    cacheManager.putProductos(cacheKey, productos)
 
-                    Log.d(TAG, "✅ ${productos.size} productos recomendados obtenidos de API")
+                    Log.d(TAG, "✅ ${productos.size} productos recomendados obtenidos de API y guardados en LRU cache")
                     Result.Success(productos, isFromCache = false, isCacheExpired = false)
                 } else {
-                    val cacheKey = "productos_recomendados"
-                    usarCacheComoRespaldo(context, cacheKey)
+                    usarCacheComoRespaldo(cacheManager, cacheKey)
                 }
             } else {
-                // NO HAY INTERNET: Usar caché
-                Log.d(TAG, "📵 Sin internet, buscando productos recomendados en caché...")
-                val cacheKey = "productos_recomendados"
-                usarCacheComoRespaldo(context, cacheKey)
+                // NO HAY INTERNET: Usar cache
+                Log.d(TAG, "📵 Sin internet, buscando productos recomendados en LRU cache...")
+                usarCacheComoRespaldo(cacheManager, cacheKey)
             }
         } catch (e: Exception) {
             Result.Error(e.message ?: "Error de conexión")

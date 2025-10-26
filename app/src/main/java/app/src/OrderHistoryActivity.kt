@@ -6,11 +6,13 @@ import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.OrderHistoryAdapter
 import app.src.data.api.ApiClient
+import app.src.utils.NetworkUtils
 import app.src.utils.SessionManager
 
 class OrderHistoryActivity : BaseActivity() {
@@ -39,6 +41,16 @@ class OrderHistoryActivity : BaseActivity() {
 
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // Check if offline and show toast
+        val isOffline = !NetworkUtils.isNetworkAvailable(this)
+        if (isOffline) {
+            Toast.makeText(
+                this,
+                "📱 Modo Offline: Mostrando historial y códigos QR desde caché",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
         // Observer
         viewModel.historial.observe(this) { compras ->
             progressBar.visibility = View.GONE
@@ -47,13 +59,18 @@ class OrderHistoryActivity : BaseActivity() {
                 recyclerView.visibility = View.GONE
                 tvEmpty.visibility = View.VISIBLE
                 tvError.visibility = View.GONE
+
+                // Si está offline y no hay datos, mostrar mensaje específico
+                if (isOffline) {
+                    tvEmpty.text = "No hay historial en caché. Conéctate a internet para ver tus pedidos."
+                }
             } else {
                 recyclerView.visibility = View.VISIBLE
                 tvEmpty.visibility = View.GONE
                 tvError.visibility = View.GONE
 
                 val adapter = OrderHistoryAdapter(compras) { compra ->
-                    // Click on order - show details
+                    // Click on order - show details with QR
                     val qrCode = compra.qr?.codigoQrHash
                     if (qrCode != null) {
                         val intent = Intent(this, OrderPickupActivity::class.java)
@@ -62,13 +79,19 @@ class OrderHistoryActivity : BaseActivity() {
                         intent.putExtra("total", compra.total)
                         intent.putExtra("estado", compra.estado.name)
                         startActivity(intent)
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "Este pedido no tiene código QR disponible",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
                 recyclerView.adapter = adapter
             }
         }
 
-        // Load history
+        // Load history (con caché automático)
         viewModel.cargarHistorial()
 
         // Back button

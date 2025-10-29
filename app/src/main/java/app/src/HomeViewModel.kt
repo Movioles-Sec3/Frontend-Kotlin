@@ -1,16 +1,13 @@
 package app.src
 
 import android.app.Application
-import android.os.Build
 import androidx.lifecycle.*
 import app.src.data.models.Producto
 import app.src.data.repositories.ProductoRepository
 import app.src.data.repositories.Result
 import app.src.utils.ImagePreloader
 import app.src.utils.PerformanceMetrics
-import app.src.utils.NetworkUtils
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.async
 import android.util.Log
 
 /**
@@ -73,9 +70,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val TAG = "HomeViewModel"
 
-        // Flag para alternar entre carga paralela y secuencial
-        // En producción, esto se puede controlar con A/B testing o configuración remota
-        var useParallelLoading = true
+        // Usar siempre carga paralela para mejor rendimiento
+        // La carga paralela es más rápida y mejora la experiencia del usuario
+        private const val USE_PARALLEL_LOADING = true
+
+        // Número máximo de productos recomendados a mostrar
+        // -1 = mostrar todos los productos recomendados
+        private const val MAX_RECOMMENDED_PRODUCTS = -1
     }
 
     /**
@@ -90,13 +91,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      *
      * Flow:
      * 1) Emits [HomeUiState.Loading].
-     * 2) Requests data from [ProductoRepository].
-     * 3) On success:
+     * 2) Requests data from [ProductoRepository] (usa caché LRU offline).
+     * 3) Precarga todas las imágenes en el caché de memoria.
+     * 4) On success:
      *    - Updates [_productosRecomendados] with the fetched list.
      *    - Emits [HomeUiState.Success] with the same list.
-     * 4) On failure:
+     * 5) On failure:
      *    - Emits [HomeUiState.Error] with a user-facing message.
-     * 5) Any unexpected result falls back to a generic error message.
      */
     fun cargarProductosRecomendados() {
         viewModelScope.launch {
@@ -104,23 +105,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             // Tiempos de medición
             val startTime = System.currentTimeMillis()
-            var catalogLoadTime = 0L
-            var imagesLoadTime = 0L
 
             try {
-                if (useParallelLoading) {
-                    // CARGA PARALELA: Catálogo e imágenes simultáneamente
+                if (USE_PARALLEL_LOADING) {
+                    // CARGA PARALELA: Catálogo e imágenes simultáneamente (más rápido)
                     cargarEnParalelo(startTime)
                 } else {
-                    // CARGA SECUENCIAL: Catálogo primero, luego imágenes
+                    // CARGA SECUENCIAL: Catálogo primero, luego imágenes (UI disponible antes)
                     cargarEnSecuencia(startTime)
                 }
 
-                // Alternar método para la próxima carga (para comparar)
-                useParallelLoading = !useParallelLoading
-
             } catch (e: Exception) {
-                Log.e(TAG, "Error al cargar productos: ${e.message}")
+                Log.e(TAG, "❌ Error al cargar productos: ${e.message}", e)
                 _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")
             }
         }
@@ -128,26 +124,32 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Carga paralela: Catálogo e imágenes simultáneamente
+     * Más rápido pero el menú está listo cuando todo termina
      */
     private suspend fun cargarEnParalelo(startTime: Long) {
-        Log.d(TAG, "🚀 Iniciando carga PARALELA")
+        Log.d(TAG, "🚀 Iniciando carga PARALELA de productos recomendados")
 
         val catalogStartTime = System.currentTimeMillis()
 
-        // Lanzar ambas operaciones en paralelo
-        val catalogDeferred = viewModelScope.async {
-            productoRepository.obtenerProductosRecomendados(getApplication<Application>())
-        }
-
-        // Esperar resultado del catálogo
-        when (val result = catalogDeferred.await()) {
+        // Obtener productos del repositorio (usa caché LRU automáticamente si offline)
+        when (val result = productoRepository.obtenerProductosRecomendados(getApplication<Application>())) {
             is Result.Success -> {
                 val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
-                val productosLimitados = result.data.take(5)
 
-                // Iniciar carga de imágenes en paralelo
-                val imageStartTime = System.currentTimeMillis()
-                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                // Aplicar límite si está configurado
+                val productos = if (MAX_RECOMMENDED_PRODUCTS > 0) {
+                    result.data.take(MAX_RECOMMENDED_PRODUCTS)
+                } else {
+                    result.data
+                }
+
+                val fromCache = result.isFromCache
+                val cacheStatus = if (fromCache) "📦 CACHÉ" else "🌐 API"
+
+                Log.d(TAG, "✅ ${productos.size} productos obtenidos de $cacheStatus en ${catalogLoadTime}ms")
+
+                // Iniciar precarga de imágenes en paralelo
+                val imageUrls = productos.mapNotNull { it.imagenUrl }
                 val imagesLoadTime = if (imageUrls.isNotEmpty()) {
                     ImagePreloader.preloadImagesParallel(imageUrls)
                 } else {
@@ -158,8 +160,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val menuReadyTime = totalTime // El menú está listo cuando todo está cargado
 
                 // Actualizar UI
-                _productosRecomendados.value = productosLimitados
-                _uiState.value = HomeUiState.Success(productosLimitados)
+                _productosRecomendados.value = productos
+                _uiState.value = HomeUiState.Success(productos)
 
                 // Registrar métricas
                 registrarMetricas(
@@ -168,20 +170,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     imagesLoadTime = imagesLoadTime,
                     totalTime = totalTime,
                     menuReadyTime = menuReadyTime,
-                    productCount = productosLimitados.size
+                    productCount = productos.size,
+                    fromCache = fromCache
                 )
 
                 Log.d(TAG, """
-                    ✅ Carga PARALELA completada:
+                    ✅ Carga PARALELA completada ($cacheStatus):
                     - Catálogo: ${catalogLoadTime}ms
-                    - Imágenes: ${imagesLoadTime}ms
+                    - Imágenes: ${imagesLoadTime}ms (${imageUrls.size} imágenes)
                     - Total: ${totalTime}ms
+                    - Productos: ${productos.size}
                 """.trimIndent())
             }
             is Result.Error -> {
+                Log.e(TAG, "❌ Error al cargar productos: ${result.message}")
                 _uiState.value = HomeUiState.Error(result.message)
             }
             else -> {
+                Log.e(TAG, "❌ Resultado inesperado del repositorio")
                 _uiState.value = HomeUiState.Error("Error desconocido")
             }
         }
@@ -189,24 +195,35 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Carga secuencial: Catálogo primero, luego imágenes
+     * El menú está listo más rápido (solo catálogo), imágenes se cargan después
      */
     private suspend fun cargarEnSecuencia(startTime: Long) {
-        Log.d(TAG, "📦 Iniciando carga SECUENCIAL")
+        Log.d(TAG, "📦 Iniciando carga SECUENCIAL de productos recomendados")
 
-        // 1. Cargar catálogo primero
+        // 1. Cargar catálogo primero (usa caché LRU automáticamente si offline)
         val catalogStartTime = System.currentTimeMillis()
         when (val result = productoRepository.obtenerProductosRecomendados(getApplication<Application>())) {
             is Result.Success -> {
                 val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
-                val productosLimitados = result.data.take(5)
+
+                // Aplicar límite si está configurado
+                val productos = if (MAX_RECOMMENDED_PRODUCTS > 0) {
+                    result.data.take(MAX_RECOMMENDED_PRODUCTS)
+                } else {
+                    result.data
+                }
+
+                val fromCache = result.isFromCache
+                val cacheStatus = if (fromCache) "📦 CACHÉ" else "🌐 API"
+
+                Log.d(TAG, "✅ ${productos.size} productos obtenidos de $cacheStatus en ${catalogLoadTime}ms")
 
                 // Actualizar UI con productos (menú ya es usable)
-                _productosRecomendados.value = productosLimitados
-                _uiState.value = HomeUiState.Success(productosLimitados)
+                _productosRecomendados.value = productos
+                _uiState.value = HomeUiState.Success(productos)
 
-                // 2. Luego cargar imágenes
-                val imageStartTime = System.currentTimeMillis()
-                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                // 2. Luego precargar imágenes en background
+                val imageUrls = productos.mapNotNull { it.imagenUrl }
                 val imagesLoadTime = if (imageUrls.isNotEmpty()) {
                     ImagePreloader.preloadImagesSequential(imageUrls)
                 } else {
@@ -223,28 +240,32 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     imagesLoadTime = imagesLoadTime,
                     totalTime = totalTime,
                     menuReadyTime = menuReadyTime,
-                    productCount = productosLimitados.size
+                    productCount = productos.size,
+                    fromCache = fromCache
                 )
 
                 Log.d(TAG, """
-                    ✅ Carga SECUENCIAL completada:
+                    ✅ Carga SECUENCIAL completada ($cacheStatus):
                     - Catálogo: ${catalogLoadTime}ms
-                    - Imágenes: ${imagesLoadTime}ms
+                    - Imágenes: ${imagesLoadTime}ms (${imageUrls.size} imágenes)
                     - Total: ${totalTime}ms
                     - Menú listo en: ${menuReadyTime}ms
+                    - Productos: ${productos.size}
                 """.trimIndent())
             }
             is Result.Error -> {
+                Log.e(TAG, "❌ Error al cargar productos: ${result.message}")
                 _uiState.value = HomeUiState.Error(result.message)
             }
             else -> {
+                Log.e(TAG, "❌ Resultado inesperado del repositorio")
                 _uiState.value = HomeUiState.Error("Error desconocido")
             }
         }
     }
 
     /**
-     * Registra métricas de rendimiento
+     * Registra métricas de rendimiento incluyendo si los datos vinieron del caché
      */
     private suspend fun registrarMetricas(
         loadType: PerformanceMetrics.LoadType,
@@ -252,10 +273,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         imagesLoadTime: Long,
         totalTime: Long,
         menuReadyTime: Long,
-        productCount: Int
+        productCount: Int,
+        fromCache: Boolean
     ) {
         val context = getApplication<Application>()
-        val networkType = getNetworkType()
+        val networkType = if (fromCache) "Cache" else getNetworkType()
         val deviceTier = getDeviceTier()
 
         PerformanceMetrics.recordMeasurement(

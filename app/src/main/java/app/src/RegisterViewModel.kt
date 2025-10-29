@@ -62,17 +62,52 @@ class RegisterViewModel(private val repo: AuthRepository) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.postValue(RegisterUiState.Loading)
 
+            android.util.Log.d("RegisterViewModel", "=== INICIO REGISTRO ===")
+            android.util.Log.d("RegisterViewModel", "Nombre: $name")
+            android.util.Log.d("RegisterViewModel", "Email: $email")
+            android.util.Log.d("RegisterViewModel", "Password length: ${password.length}")
+
+            // Verificar conectividad básica
+            try {
+                val url = java.net.URL("http://192.168.4.202:8080/")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 5000
+                connection.requestMethod = "GET"
+                val canConnect = try {
+                    connection.responseCode
+                    true
+                } catch (e: Exception) {
+                    android.util.Log.e("RegisterViewModel", "No se puede conectar al backend: ${e.message}")
+                    false
+                } finally {
+                    connection.disconnect()
+                }
+
+                if (!canConnect) {
+                    android.util.Log.e("RegisterViewModel", "⚠️ BACKEND NO ACCESIBLE")
+                } else {
+                    android.util.Log.d("RegisterViewModel", "✓ Backend accesible")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("RegisterViewModel", "Error verificando conectividad: ${e.message}", e)
+            }
+
+            android.util.Log.d("RegisterViewModel", "Iniciando petición de registro...")
             when (val result = repo.registrar(name, email, password)) {
                 is Result.Success -> {
+                    android.util.Log.d("RegisterViewModel", "✓ Registro exitoso: ${result.data}")
                     _uiState.postValue(RegisterUiState.Success)
                 }
                 is Result.Error -> {
+                    android.util.Log.e("RegisterViewModel", "✗ Error en registro: ${result.message}, code: ${result.code}")
                     _uiState.postValue(RegisterUiState.Error(message = R.string.register_error))
                 }
                 else -> {
+                    android.util.Log.e("RegisterViewModel", "✗ Resultado inesperado: $result")
                     _uiState.postValue(RegisterUiState.Error(message = R.string.register_error))
                 }
             }
+            android.util.Log.d("RegisterViewModel", "=== FIN REGISTRO ===")
         }
     }
 

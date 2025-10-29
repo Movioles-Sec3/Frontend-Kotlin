@@ -5,7 +5,9 @@ import androidx.lifecycle.*
 import app.src.data.models.TipoProducto
 import app.src.data.repositories.ProductoRepository
 import app.src.data.repositories.Result
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * UI state contract for the Category screen.
@@ -68,17 +70,14 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
     fun loadCategories() {
         viewModelScope.launch {
             _uiState.value = CategoryUiState.Loading
-            when (val result = repo.listarTipos(getApplication())) {
-                is Result.Success -> {
-                    _uiState.value = CategoryUiState.Success(result.data)
-                }
-                is Result.Error -> {
-                    _uiState.value = CategoryUiState.Error(result.message)
-                }
-                else -> {
-                    // Fallback guard for any unhandled Result variants.
-                    _uiState.value = CategoryUiState.Error("Unknown error")
-                }
+
+            val result = withContext(Dispatchers.IO) {
+                repo.listarTipos(getApplication())
+            }
+            when (result) {
+                is Result.Success -> _uiState.value = CategoryUiState.Success(result.data)
+                is Result.Error -> _uiState.value = CategoryUiState.Error(result.message)
+                else -> _uiState.value = CategoryUiState.Error("Unknown error")
             }
         }
     }

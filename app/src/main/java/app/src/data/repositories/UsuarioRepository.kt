@@ -20,13 +20,24 @@ class UsuarioRepository {
 
     suspend fun registrarUsuario(nombre: String, email: String, password: String): Result<Usuario> {
         return try {
+            android.util.Log.d("UsuarioRepository", "Registrando usuario: $nombre, $email")
             val response = api.registrarUsuario(UsuarioCreate(nombre, email, password))
+            android.util.Log.d("UsuarioRepository", "Código de respuesta: ${response.code()}")
+            android.util.Log.d("UsuarioRepository", "Respuesta exitosa: ${response.isSuccessful}")
+            android.util.Log.d("UsuarioRepository", "Body: ${response.body()}")
+
             if (response.isSuccessful && response.body() != null) {
+                android.util.Log.d("UsuarioRepository", "Usuario registrado exitosamente: ${response.body()}")
                 Result.Success(response.body()!!)
             } else {
-                Result.Error(parseError(response), response.code())
+                val errorBody = response.errorBody()?.string()
+                android.util.Log.e("UsuarioRepository", "ErrorBody: $errorBody")
+                val errorMsg = parseError(response)
+                android.util.Log.e("UsuarioRepository", "Error en registro: $errorMsg")
+                Result.Error(errorMsg, response.code())
             }
         } catch (e: Exception) {
+            android.util.Log.e("UsuarioRepository", "Excepción en registro: ${e.message}", e)
             Result.Error(e.message ?: "Error de conexión")
         }
     }

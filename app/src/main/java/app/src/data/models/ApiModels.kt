@@ -8,7 +8,7 @@ data class Usuario(
     @SerializedName("id") val id: Int,
     @SerializedName("nombre") val nombre: String,
     @SerializedName("email") val email: String,
-    @SerializedName("saldo") val saldo: Double
+    @SerializedName("saldo") val saldo: Double = 0.0
 )
 
 data class UsuarioCreate(

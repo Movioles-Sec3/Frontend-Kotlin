@@ -15,6 +15,7 @@ import app.src.data.api.ApiClient
 import app.src.data.repositories.UsuarioRepository
 import app.src.data.repositories.Result
 import app.src.utils.SessionManager
+import app.src.utils.NetworkUtils
 import kotlinx.coroutines.launch
 
 class LoginActivity : BaseActivity() {
@@ -92,6 +93,16 @@ class LoginActivity : BaseActivity() {
     }
 
     private fun attemptLogin() {
+        // ✅ VALIDAR CONEXIÓN A INTERNET ANTES DE INTENTAR LOGIN
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(
+                this,
+                "No internet connection. Please check your network and try again.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
         binding.tilUsername.error = null
         binding.tilPassword.error = null
         vm.login()

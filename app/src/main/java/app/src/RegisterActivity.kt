@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.view.isVisible
 import app.src.databinding.ActivityRegisterBinding
+import app.src.utils.NetworkUtils
 
 class RegisterActivity : BaseActivity() {
 
@@ -31,6 +32,16 @@ class RegisterActivity : BaseActivity() {
 
         // Botón de registro
         binding.btnRegister.setOnClickListener {
+            // ✅ VALIDAR CONEXIÓN A INTERNET ANTES DE INTENTAR REGISTRO
+            if (!NetworkUtils.isNetworkAvailable(this)) {
+                Toast.makeText(
+                    this,
+                    "No internet connection. Please check your network and try again.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+
             clearErrors()
             vm.register()
         }

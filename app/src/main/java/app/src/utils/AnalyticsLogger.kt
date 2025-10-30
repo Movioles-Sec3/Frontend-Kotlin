@@ -424,4 +424,43 @@ object AnalyticsLogger {
             Log.e(TAG, "❌ Error al registrar métrica de rendimiento", e)
         }
     }
+
+    /**
+     * Registra cuando un usuario añade un producto al carrito desde la sección de Recomendados
+     */
+    fun logProductAddedFromRecommended(
+        context: Context,
+        productId: Int,
+        productName: String,
+        productPrice: Double,
+        productCategory: String,
+        quantity: Int
+    ) {
+        val timestamp = System.currentTimeMillis()
+        val networkType = getNetworkType(context)
+        val deviceTier = getDeviceTier()
+        val osApi = Build.VERSION.SDK_INT
+
+        try {
+            // Guardar SOLO en CSV local
+            CSVEventLogger.logProductAddedFromRecommended(
+                context = context,
+                timestamp = timestamp,
+                productId = productId,
+                productName = productName,
+                productPrice = productPrice,
+                productCategory = productCategory,
+                quantity = quantity,
+                networkType = networkType,
+                deviceTier = deviceTier,
+                osApi = osApi
+            )
+
+            Log.d(TAG, "✅ Evento product_added_from_recommended guardado en CSV - Producto: $productName, Cantidad: $quantity")
+            Log.d(TAG, "📄 Total eventos en CSV: ${CSVEventLogger.getEventCount(context)}")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error al guardar evento product_added_from_recommended", e)
+        }
+    }
 }

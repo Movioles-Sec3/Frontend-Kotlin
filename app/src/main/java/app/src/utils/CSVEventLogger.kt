@@ -12,7 +12,7 @@ import java.util.*
 object CSVEventLogger {
     private const val TAG = "CSVEventLogger"
     private const val CSV_FILENAME = "analytics_events.csv"
-    private const val CSV_HEADER = "timestamp,event_name,duration_ms,network_type,device_tier,os_api,success,payment_method,screen,app_version,device_model,android_version"
+    private const val CSV_HEADER = "timestamp,event_name,duration_ms,network_type,device_tier,os_api,success,payment_method,screen,app_version,device_model,android_version,product_id,product_name,product_price,product_category,quantity"
 
     /**
      * Obtiene el archivo CSV. Si no existe, lo crea con el header.
@@ -162,6 +162,46 @@ object CSVEventLogger {
             append(escapeCsvValue(appVersion)).append(",")
             append(escapeCsvValue(deviceModel)).append(",")
             append(escapeCsvValue(androidVersion))
+        }
+
+        writeToCSV(context, csvLine)
+    }
+
+    /**
+     * Guarda un evento product_added_from_recommended en el CSV
+     */
+    fun logProductAddedFromRecommended(
+        context: Context,
+        timestamp: Long,
+        productId: Int,
+        productName: String,
+        productPrice: Double,
+        productCategory: String,
+        quantity: Int,
+        networkType: String,
+        deviceTier: String,
+        osApi: Int
+    ) {
+        val (deviceModel, androidVersion) = getDeviceInfo()
+
+        val csvLine = buildString {
+            append(formatTimestamp(timestamp)).append(",")
+            append("product_added_from_recommended").append(",")
+            append("0").append(",") // duration_ms (no aplica)
+            append(escapeCsvValue(networkType)).append(",")
+            append(escapeCsvValue(deviceTier)).append(",")
+            append(osApi).append(",")
+            append("").append(",") // success (solo para payment)
+            append("").append(",") // payment_method (solo para payment)
+            append("HomeActivity_Recommended").append(",") // screen
+            append("1.0").append(",") // app_version
+            append(escapeCsvValue(deviceModel)).append(",")
+            append(escapeCsvValue(androidVersion)).append(",")
+            append(productId).append(",")
+            append(escapeCsvValue(productName)).append(",")
+            append(productPrice).append(",")
+            append(escapeCsvValue(productCategory)).append(",")
+            append(quantity)
         }
 
         writeToCSV(context, csvLine)

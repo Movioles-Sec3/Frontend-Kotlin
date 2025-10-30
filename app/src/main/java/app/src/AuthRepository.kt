@@ -2,6 +2,9 @@ package app.src
 
 import app.src.data.repositories.UsuarioRepository
 import app.src.data.repositories.Result
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 /**
  * Repository that centralizes user authentication flows.
@@ -53,6 +56,11 @@ class AuthRepository {
      * Logs out the current user and clears any persisted session data if applicable.
      */
     fun logout() {
-        usuarioRepo.logout()
+        // fire-and-forget, does not block main thread
+        GlobalScope.launch(Dispatchers.IO) {
+            usuarioRepo.logout()
+        }
     }
+
+
 }

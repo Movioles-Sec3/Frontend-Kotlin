@@ -18,12 +18,16 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import app.src.data.api.ApiClient
 import app.src.data.models.Compra
 import app.src.data.models.EstadoCompra
 import app.src.utils.QRCodeGenerator
 import app.src.utils.SessionManager
 import com.google.android.material.card.MaterialCardView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class OrderPickupActivity : BaseActivity() {
@@ -213,27 +217,37 @@ class OrderPickupActivity : BaseActivity() {
     }
 
     private fun updateUI(compra: Compra) {
-        // Display basic data
+        // Basic text UI stays on main
         tvQrCode.text = compra.qr?.codigoQrHash ?: "No QR"
         tvCompraId.text = String.format(Locale.US, "Order #%d", compra.id)
         tvTotal.text = String.format(Locale.US, "$%.0f", compra.total)
 
-        // Set status with color
         tvEstado.text = getEstadoDisplayText(compra.estado)
         tvEstado.setTextColor(getEstadoColor(compra.estado))
 
-        // Actualizar visibilidad de botones según el estado actual
         updateButtonsVisibility(compra.estado)
 
-        // Generar y mostrar código QR
         compra.qr?.let { qr ->
-            val bitmap = QRCodeGenerator.generateQRCode(qr.codigoQrHash)
-            ivQrCode.setImageBitmap(bitmap)
-            ivQrCode.visibility = View.VISIBLE
+            ivQrCode.visibility = View.INVISIBLE
+
+            // ⬇ explicit Main dispatcher
+            lifecycleScope.launch(Dispatchers.Main) {
+                // Heavy bitmap generation OFF main
+                val bmp = withContext(Dispatchers.Default) {
+                    QRCodeGenerator.generateQRCode(qr.codigoQrHash)
+                }
+
+                // We are now *explicitly* back on Main because `withContext` returned
+                if (ivQrCode.isAttachedToWindow) {
+                    ivQrCode.setImageBitmap(bmp)
+                    ivQrCode.visibility = View.VISIBLE
+                }
+            }
         } ?: run {
             ivQrCode.visibility = View.GONE
         }
     }
+
 
     private fun updateButtonsVisibility(estado: EstadoCompra) {
         // Resetear visibilidad

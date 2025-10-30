@@ -26,7 +26,9 @@ import app.src.utils.AnalyticsLogger
 import app.src.utils.SessionManager
 import app.src.utils.ConversionesDialogManager
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class HomeActivity : BaseActivity() {
@@ -338,10 +340,14 @@ class HomeActivity : BaseActivity() {
 
     private fun rechargeBalance(amount: Double) {
         lifecycleScope.launch {
-            when (val result = usuarioRepo.recargarSaldo(amount)) {
+            val result = withContext(Dispatchers.IO) {
+                usuarioRepo.recargarSaldo(amount)
+            }
+
+            when (result) {
                 is Result.Success -> {
                     val usuario = result.data
-                    // Update local session
+                    // Update session & UI (main thread)
                     SessionManager.saveUserData(
                         this@HomeActivity,
                         usuario.id,
@@ -349,10 +355,8 @@ class HomeActivity : BaseActivity() {
                         usuario.email,
                         usuario.saldo
                     )
-                    // Update UI
                     findViewById<TextView>(R.id.tv_saldo)?.text =
                         String.format(Locale.US, "Balance: $%.2f", usuario.saldo)
-
                     Toast.makeText(
                         this@HomeActivity,
                         String.format(Locale.US, "Balance recharged successfully! New balance: $%.2f", usuario.saldo),

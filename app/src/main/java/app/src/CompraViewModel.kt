@@ -7,7 +7,9 @@ import app.src.data.models.CompraRequest
 import app.src.data.models.DetalleCompraRequest
 import app.src.data.repositories.CompraRepository
 import app.src.data.repositories.Result
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * UI state contract for the Purchase (Compra) screen.
@@ -83,16 +85,14 @@ class CompraViewModel(application: Application) : AndroidViewModel(application) 
             _uiState.value = CompraUiState.Loading
 
             val compraRequest = CompraRequest(productos)
-            when (val result = repo.crearCompra(getApplication(), compraRequest)) {
-                is Result.Success -> {
-                    _uiState.value = CompraUiState.Success(result.data)
-                }
-                is Result.Error -> {
-                    _uiState.value = CompraUiState.Error(result.message)
-                }
-                else -> {
-                    _uiState.value = CompraUiState.Error("Error desconocido")
-                }
+            val result = withContext(Dispatchers.IO) {
+                repo.crearCompra(getApplication(), compraRequest)
+            }
+
+            _uiState.value = when (result) {
+                is Result.Success -> CompraUiState.Success(result.data)
+                is Result.Error -> CompraUiState.Error(result.message)
+                else -> CompraUiState.Error("Error desconocido")
             }
         }
     }
@@ -101,19 +101,17 @@ class CompraViewModel(application: Application) : AndroidViewModel(application) 
      * Carga el historial de compras del usuario.
      * Usa caché LRU cuando no hay conexión (incluye códigos QR).
      */
+
     fun cargarHistorial() {
         viewModelScope.launch {
-            when (val result = repo.obtenerHistorial(getApplication())) {
-                is Result.Success -> {
-                    _historial.value = result.data
-                }
-                is Result.Error -> {
-                    // Si falla, lista vacía (o mantener la existente)
-                    _historial.value = emptyList()
-                }
-                else -> {
-                    _historial.value = emptyList()
-                }
+            val result = withContext(Dispatchers.IO) {
+                repo.obtenerHistorial(getApplication())
+            }
+
+            _historial.value = when (result) {
+                is Result.Success -> result.data
+                is Result.Error -> emptyList()
+                else -> emptyList()
             }
         }
     }
@@ -123,15 +121,12 @@ class CompraViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun actualizarEstado(compraId: Int, nuevoEstado: String) {
         viewModelScope.launch {
-            when (repo.actualizarEstado(getApplication(), compraId, nuevoEstado)) {
-                is Result.Success -> {
-                    // Recargar historial para reflejar el cambio
-                    cargarHistorial()
-                }
-                is Result.Error -> {
-                    // Manejar error (opcional: emitir estado de error)
-                }
-                else -> {}
+            val result = withContext(Dispatchers.IO) {
+                repo.actualizarEstado(getApplication(), compraId, nuevoEstado)
+            }
+
+            if (result is Result.Success) {
+                cargarHistorial() // already launches coroutine internally
             }
         }
     }

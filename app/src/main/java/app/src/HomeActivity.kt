@@ -191,7 +191,8 @@ class HomeActivity : BaseActivity() {
             onShowConversions = { producto ->
                 // Mostrar conversiones de precio
                 conversionesDialogManager.mostrarConversiones(producto.id, producto.nombre)
-            }
+            },
+            context = this
         )
 
         rvRecommendedProducts.adapter = recommendedProductsAdapter

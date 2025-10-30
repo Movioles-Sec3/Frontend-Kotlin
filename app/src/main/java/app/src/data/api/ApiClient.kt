@@ -13,7 +13,7 @@ object ApiClient {
     // Para emulador Android: usa "10.0.2.2"
     // Para dispositivo físico: usa la IP de tu PC (ej: "192.168.0.5")
     // IMPORTANTE: El backend NO usa prefijo /api/, solo la IP:puerto
-    private const val BASE_URL = "http://192.168.10.16:8080/"
+    private const val BASE_URL = "http://192.168.10.10:8080/"
 
     private var token: String? = null
 

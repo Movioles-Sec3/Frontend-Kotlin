@@ -1,5 +1,6 @@
 package app.src.adapters
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import app.src.R
 import app.src.data.models.Producto
+import app.src.utils.AnalyticsLogger
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.button.MaterialButton
@@ -18,7 +20,8 @@ class RecommendedProductsAdapter(
     private val productos: List<Producto>,
     private val onProductClick: (Producto) -> Unit,
     private val onAddToCartClick: (Producto) -> Unit,
-    private val onShowConversions: (Producto) -> Unit
+    private val onShowConversions: (Producto) -> Unit,
+    private val context: Context
 ) : RecyclerView.Adapter<RecommendedProductsAdapter.RecommendedProductViewHolder>() {
 
     class RecommendedProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -59,6 +62,16 @@ class RecommendedProductsAdapter(
 
         // Click en el botón "Agregar al carrito"
         holder.btnAddToCart.setOnClickListener {
+            // Registrar evento de analytics ANTES de añadir al carrito
+            AnalyticsLogger.logProductAddedFromRecommended(
+                context = context,
+                productId = producto.id,
+                productName = producto.nombre,
+                productPrice = producto.precio,
+                productCategory = producto.tipoProducto.nombre,
+                quantity = 1 // Por defecto 1, se actualizará en el diálogo
+            )
+
             onAddToCartClick(producto)
         }
 

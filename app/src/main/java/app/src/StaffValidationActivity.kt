@@ -7,12 +7,10 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import app.src.data.api.ApiClient
-import app.src.data.models.EscanearQRRequest
 import app.src.data.repositories.CompraRepository
 import app.src.data.repositories.Result
+import app.src.utils.NetworkUtils
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -41,6 +39,16 @@ class StaffValidationActivity : BaseActivity() {
 
             if (qrCode.isEmpty()) {
                 Toast.makeText(this, "Please enter a QR code", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // ✅ VALIDAR CONEXIÓN A INTERNET ANTES DE ESCANEAR QR
+            if (!NetworkUtils.isNetworkAvailable(this)) {
+                Toast.makeText(
+                    this,
+                    "No internet connection. Cannot scan QR code without network access.",
+                    Toast.LENGTH_LONG
+                ).show()
                 return@setOnClickListener
             }
 

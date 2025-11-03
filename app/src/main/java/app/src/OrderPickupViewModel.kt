@@ -1,12 +1,12 @@
 package app.src
 
+import android.app.Application
 import androidx.lifecycle.*
-import app.src.data.api.ApiClient
-import app.src.data.models.ActualizarEstadoRequest
 import app.src.data.models.Compra
-import app.src.data.models.EscanearQRRequest
 import app.src.data.models.EscanearQRResponse
 import app.src.data.models.EstadoCompra
+import app.src.data.repositories.CompraRepository
+import app.src.data.repositories.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -18,7 +18,9 @@ sealed class OrderPickupState {
     data class Error(val message: String) : OrderPickupState()
 }
 
-class OrderPickupViewModel : ViewModel() {
+class OrderPickupViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository = CompraRepository()
 
     private val _state = MutableLiveData<OrderPickupState>(OrderPickupState.Idle)
     val state: LiveData<OrderPickupState> = _state
@@ -31,6 +33,9 @@ class OrderPickupViewModel : ViewModel() {
         _state.value = OrderPickupState.Success(compra)
     }
 
+    /**
+     * ✅ Actualiza el estado de una orden (funciona OFFLINE)
+     */
     fun actualizarEstado(compraId: Int, nuevoEstado: EstadoCompra) {
         _state.value = OrderPickupState.Loading
 
@@ -43,16 +48,21 @@ class OrderPickupViewModel : ViewModel() {
                     else -> nuevoEstado.name
                 }
 
-                val request = ActualizarEstadoRequest(estado = estadoStr)
-                val response = ApiClient.compraService.actualizarEstadoCompra(compraId, request)
+                // ✅ Usar CompraRepository que maneja offline automáticamente
+                val result = repository.actualizarEstado(getApplication(), compraId, estadoStr)
 
-                if (response.isSuccessful && response.body() != null) {
-                    val compraActualizada = response.body()!!
-                    _currentCompra.postValue(compraActualizada)
-                    _state.postValue(OrderPickupState.Success(compraActualizada))
-                } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Error al actualizar estado"
-                    _state.postValue(OrderPickupState.Error(errorMsg))
+                when (result) {
+                    is Result.Success -> {
+                        val compraActualizada = result.data
+                        _currentCompra.postValue(compraActualizada)
+                        _state.postValue(OrderPickupState.Success(compraActualizada))
+                    }
+                    is Result.Error -> {
+                        _state.postValue(OrderPickupState.Error(result.message))
+                    }
+                    else -> {
+                        _state.postValue(OrderPickupState.Error("Error desconocido"))
+                    }
                 }
             } catch (e: Exception) {
                 _state.postValue(OrderPickupState.Error(e.message ?: "Error de conexión"))
@@ -60,20 +70,27 @@ class OrderPickupViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Escanea QR (requiere conexión)
+     */
     fun escanearQR(codigoQrHash: String) {
         _state.value = OrderPickupState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val request = EscanearQRRequest(codigoQrHash = codigoQrHash)
-                val response = ApiClient.compraService.escanearQR(request)
+                val result = repository.escanearQR(codigoQrHash)
 
-                if (response.isSuccessful && response.body() != null) {
-                    val qrResponse = response.body()!!
-                    _state.postValue(OrderPickupState.QRScanned(qrResponse))
-                } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Error al escanear QR"
-                    _state.postValue(OrderPickupState.Error(errorMsg))
+                when (result) {
+                    is Result.Success -> {
+                        val qrResponse = result.data
+                        _state.postValue(OrderPickupState.QRScanned(qrResponse))
+                    }
+                    is Result.Error -> {
+                        _state.postValue(OrderPickupState.Error(result.message))
+                    }
+                    else -> {
+                        _state.postValue(OrderPickupState.Error("Error desconocido"))
+                    }
                 }
             } catch (e: Exception) {
                 _state.postValue(OrderPickupState.Error(e.message ?: "Error de conexión"))

@@ -1,10 +1,12 @@
 package app.src
 
+import android.content.ComponentCallbacks2
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import app.src.utils.BrightnessManager
 import app.src.utils.SessionManager
+import app.src.utils.MemoryManager
 import java.util.Calendar
 
 /**
@@ -20,6 +22,10 @@ import java.util.Calendar
  * - Antes de las 16:00 (4 PM) = 90%
  * - Después de las 16:00 (4 PM) = 30%
  * - En pantallas QR = 100%
+ *
+ * Gestión de Memoria:
+ * - Responde a eventos de presión de memoria del sistema
+ * - Libera cachés automáticamente cuando es necesario
  */
 open class BaseActivity : AppCompatActivity() {
 
@@ -46,6 +52,15 @@ open class BaseActivity : AppCompatActivity() {
         // Opcional: restaurar brillo del sistema cuando se sale de la actividad
         // Comentado para mantener consistencia entre actividades
         // BrightnessManager.restoreSystemBrightness(this)
+    }
+
+    /**
+     * Maneja eventos de presión de memoria del sistema
+     * Implementa ComponentCallbacks2 para liberar recursos cuando sea necesario
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        MemoryManager.handleMemoryPressure(this, level)
     }
 
     /**

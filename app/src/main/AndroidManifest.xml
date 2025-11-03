@@ -88,6 +88,11 @@
             android:name=".PerformanceMetricsActivity"
             android:exported="false" />
 
+        <!-- LocalStorageDebugActivity -->
+        <activity
+            android:name=".LocalStorageDebugActivity"
+            android:exported="false" />
+
         <!-- MainActivity (mantenemos por compatibilidad) -->
         <activity
             android:name=".MainActivity"

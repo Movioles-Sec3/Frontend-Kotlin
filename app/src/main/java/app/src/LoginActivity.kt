@@ -74,8 +74,11 @@ class LoginActivity : BaseActivity() {
                     // Muestra errores de formulario si aplica
                     binding.tilUsername.error = state.userError?.let { getString(it) }
                     binding.tilPassword.error = state.passError?.let { getString(it) }
-                    if (state.message != null) {
-                        Toast.makeText(this, getString(state.message), Toast.LENGTH_SHORT).show()
+
+                    // ✅ MOSTRAR MENSAJE PERSONALIZADO O MENSAJE DE RECURSO
+                    val errorMessage = state.customMessage ?: state.message?.let { getString(it) }
+                    if (errorMessage != null) {
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                     }
                 }
                 is LoginUiState.Success -> {
@@ -93,16 +96,7 @@ class LoginActivity : BaseActivity() {
     }
 
     private fun attemptLogin() {
-        // ✅ VALIDAR CONEXIÓN A INTERNET ANTES DE INTENTAR LOGIN
-        if (!NetworkUtils.isNetworkAvailable(this)) {
-            Toast.makeText(
-                this,
-                "No internet connection. Please check your network and try again.",
-                Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-
+        // ✅ NO BLOQUEAR EL LOGIN - Dejar que intente conectar y manejar errores después
         binding.tilUsername.error = null
         binding.tilPassword.error = null
         vm.login()
@@ -120,6 +114,11 @@ class LoginActivity : BaseActivity() {
                         usuario.email,
                         usuario.saldo
                     )
+
+                    // ✅ GUARDAR userId EN DATASTORE PARA ROOM
+                    val dataStore = app.src.data.local.DataStoreManager(this@LoginActivity)
+                    dataStore.saveUserId(usuario.id)
+
                     navigateToHome()
                 }
                 else -> {

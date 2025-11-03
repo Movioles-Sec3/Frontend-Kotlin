@@ -174,16 +174,23 @@ class ProductoRepository {
                 // HAY INTERNET: Siempre obtener de la API
                 Log.d(TAG, "🌐 Internet disponible, obteniendo productos recomendados de la API...")
 
-                val response = api.obtenerProductosRecomendados()
-                if (response.isSuccessful && response.body() != null) {
-                    val productos = response.body()!!
+                try {
+                    val response = api.obtenerProductosRecomendados()
+                    if (response.isSuccessful && response.body() != null) {
+                        val productos = response.body()!!
 
-                    // Guardar en LRU cache
-                    cacheManager.putProductos(cacheKey, productos)
+                        // Guardar en LRU cache
+                        cacheManager.putProductos(cacheKey, productos)
 
-                    Log.d(TAG, "✅ ${productos.size} productos recomendados obtenidos de API y guardados en LRU cache")
-                    Result.Success(productos, isFromCache = false, isCacheExpired = false)
-                } else {
+                        Log.d(TAG, "✅ ${productos.size} productos recomendados obtenidos de API y guardados en LRU cache")
+                        Result.Success(productos, isFromCache = false, isCacheExpired = false)
+                    } else {
+                        Log.w(TAG, "⚠️ API respondió con código ${response.code()}, usando cache como respaldo")
+                        usarCacheComoRespaldo(cacheManager, cacheKey)
+                    }
+                } catch (apiError: Exception) {
+                    Log.e(TAG, "❌ Error llamando a la API: ${apiError.javaClass.simpleName}: ${apiError.message}")
+                    apiError.printStackTrace()
                     usarCacheComoRespaldo(cacheManager, cacheKey)
                 }
             } else {
@@ -192,7 +199,9 @@ class ProductoRepository {
                 usarCacheComoRespaldo(cacheManager, cacheKey)
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Error de conexión")
+            Log.e(TAG, "❌ Error general: ${e.javaClass.simpleName}: ${e.message}")
+            e.printStackTrace()
+            Result.Error("Error al cargar productos: ${e.message}")
         }
     }
 

@@ -42,7 +42,19 @@ class UsuarioRepository {
                 Result.Error(parseError(response), response.code())
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Error de conexión")
+            // ✅ MEJORAR MENSAJE DE ERROR SEGÚN EL TIPO DE EXCEPCIÓN
+            val errorMessage = when {
+                e is java.net.ConnectException ||
+                e.message?.contains("failed to connect", ignoreCase = true) == true ->
+                    "Servidor no disponible. Verifica que el backend esté funcionando."
+                e is java.net.UnknownHostException ->
+                    "No se puede resolver el host. Verifica la URL del servidor."
+                e is java.net.SocketTimeoutException ->
+                    "Tiempo de espera agotado. El servidor tardó mucho en responder."
+                else ->
+                    "Error de conexión: ${e.message}"
+            }
+            Result.Error(errorMessage)
         }
     }
 

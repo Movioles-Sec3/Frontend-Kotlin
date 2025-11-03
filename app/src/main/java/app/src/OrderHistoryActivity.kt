@@ -70,22 +70,13 @@ class OrderHistoryActivity : BaseActivity() {
                 tvError.visibility = View.GONE
 
                 val adapter = OrderHistoryAdapter(compras) { compra ->
-                    // Click on order - show details with QR
-                    val qrCode = compra.qr?.codigoQrHash
-                    if (qrCode != null) {
-                        val intent = Intent(this, OrderPickupActivity::class.java)
-                        intent.putExtra("qr_code", qrCode)
-                        intent.putExtra("compra_id", compra.id)
-                        intent.putExtra("total", compra.total)
-                        intent.putExtra("estado", compra.estado.name)
-                        startActivity(intent)
-                    } else {
-                        Toast.makeText(
-                            this,
-                            "Este pedido no tiene código QR disponible",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    // ✅ Click on order - show details with QR (siempre disponible offline)
+                    val intent = Intent(this, OrderPickupActivity::class.java)
+                    intent.putExtra("qr_code", compra.qr?.codigoQrHash ?: "")
+                    intent.putExtra("compra_id", compra.id)
+                    intent.putExtra("total", compra.total)
+                    intent.putExtra("estado", compra.estado.name)
+                    startActivity(intent)
                 }
                 recyclerView.adapter = adapter
             }

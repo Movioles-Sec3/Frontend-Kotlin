@@ -8,6 +8,8 @@ import app.src.data.repositories.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import app.src.data.local.CatalogCacheManager
+import android.util.Log
 
 /**
  * UI state contract for the Category screen.
@@ -49,6 +51,9 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
     /** Repository that provides product-related data operations. */
     private val repo = ProductoRepository()
 
+    /** Cache manager para almacenamiento local */
+    private val catalogCache = CatalogCacheManager(application)
+
     // Backing property that holds the current UI state.
     private val _uiState = MutableLiveData<CategoryUiState>(CategoryUiState.Idle)
 
@@ -57,27 +62,101 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
      */
     val uiState: LiveData<CategoryUiState> = _uiState
 
+    companion object {
+        private const val TAG = "CategoryViewModel"
+    }
+
     /**
      * Initiates the loading of product categories.
      *
-     * Behavior:
-     * 1) Emits [CategoryUiState.Loading].
-     * 2) Requests the category list from the repository.
-     * 3) Emits:
-     *    - [CategoryUiState.Success] with the data on success.
-     *    - [CategoryUiState.Error] with a message on failure or unexpected result.
+     * Estrategia: Cache-First
+     * 1. Lee del caché local primero (instantáneo)
+     * 2. Muestra datos cacheados si existen
+     * 3. Actualiza desde red en background
      */
     fun loadCategories() {
         viewModelScope.launch {
             _uiState.value = CategoryUiState.Loading
 
-            val result = withContext(Dispatchers.IO) {
-                repo.listarTipos(getApplication())
+            try {
+                // 1) Intentar cargar desde caché primero
+                val cachedData = withContext(Dispatchers.IO) {
+                    val cacheKey = CatalogCacheManager.KEY_CATEGORIES_LIST
+                    try {
+                        catalogCache.getFromCache(cacheKey, Array<TipoProducto>::class.java)?.toList()
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+
+                if (cachedData != null && cachedData.isNotEmpty()) {
+                    // Mostrar datos del caché inmediatamente
+                    Log.d(TAG, "✅ Cargando categorías desde CACHÉ: ${cachedData.size} categorías")
+                    _uiState.value = CategoryUiState.Success(cachedData)
+                }
+
+                // 2) Actualizar desde red en background
+                actualizarCategoriasDesdeRed(cachedData == null)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error al cargar categorías: ${e.message}")
+                // Solo mostrar error si no hay datos en caché
+                if (_uiState.value !is CategoryUiState.Success) {
+                    _uiState.value = CategoryUiState.Error("Sin conexión. Verifica tu red WiFi.")
+                }
             }
-            when (result) {
-                is Result.Success -> _uiState.value = CategoryUiState.Success(result.data)
-                is Result.Error -> _uiState.value = CategoryUiState.Error(result.message)
-                else -> _uiState.value = CategoryUiState.Error("Unknown error")
+        }
+    }
+
+    /**
+     * Actualiza categorías desde la red y guarda en caché
+     */
+    private suspend fun actualizarCategoriasDesdeRed(showErrorIfFails: Boolean) {
+        withContext(Dispatchers.IO) {
+            try {
+                val result = repo.listarTipos(getApplication())
+
+                when (result) {
+                    is Result.Success -> {
+                        // Guardar en caché
+                        val cacheKey = CatalogCacheManager.KEY_CATEGORIES_LIST
+                        catalogCache.saveToCache(
+                            cacheKey,
+                            result.data,
+                            CatalogCacheManager.TTL_CATEGORY_LIST
+                        )
+
+                        // Actualizar UI
+                        withContext(Dispatchers.Main) {
+                            _uiState.value = CategoryUiState.Success(result.data)
+                        }
+
+                        Log.d(TAG, "✅ Categorías actualizadas desde RED y guardadas en caché")
+                    }
+                    is Result.Error -> {
+                        Log.w(TAG, "Error al actualizar categorías desde red: ${result.message}")
+                        if (showErrorIfFails) {
+                            withContext(Dispatchers.Main) {
+                                _uiState.value = CategoryUiState.Error(result.message)
+                            }
+                        }
+                    }
+                    else -> {
+                        Log.w(TAG, "Resultado desconocido al actualizar categorías")
+                        if (showErrorIfFails) {
+                            withContext(Dispatchers.Main) {
+                                _uiState.value = CategoryUiState.Error("Error desconocido")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Excepción al actualizar categorías: ${e.message}")
+                if (showErrorIfFails) {
+                    withContext(Dispatchers.Main) {
+                        _uiState.value = CategoryUiState.Error("Sin conexión a internet")
+                    }
+                }
             }
         }
     }

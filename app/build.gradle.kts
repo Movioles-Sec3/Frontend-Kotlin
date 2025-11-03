@@ -90,6 +90,10 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
+    // DataStore para preferencias type-safe (reemplazo de SharedPreferences)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.datastore:datastore:1.1.1")
+
     // WorkManager para sincronizacion en background
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
@@ -97,7 +101,11 @@ dependencies {
     implementation("com.google.zxing:core:3.5.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // Glide para carga de imágenes
+    // Coil para carga de imágenes (mejor que Glide para Kotlin/Coroutines)
+    implementation("io.coil-kt:coil:2.5.0")
+    implementation("io.coil-kt:coil-gif:2.5.0")
+
+    // Glide (manteniendo compatibilidad con código existente)
     implementation("com.github.bumptech.glide:glide:4.16.0")
     ksp("com.github.bumptech.glide:ksp:4.16.0")
 

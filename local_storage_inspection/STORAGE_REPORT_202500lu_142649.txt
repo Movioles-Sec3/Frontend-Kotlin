@@ -1,0 +1,111 @@
+═══════════════════════════════════════════════════════════════════
+   📊 REPORTE DE ALMACENAMIENTO LOCAL - TapAndToast
+═══════════════════════════════════════════════════════════════════
+
+Dispositivo: ZY22KC6Z2J
+Fecha: lun 03/11/2025 14:26:49,90
+
+═══════════════════════════════════════════════════════════════════
+🗄️ ARCHIVOS EXTRAÍDOS
+═══════════════════════════════════════════════════════════════════
+
+• datastore_202500lu_142649.pb
+  Tipo: DataStore (Protocol Buffer)
+  Tamaño: 100 bytes
+
+• image_cache_size_202500lu_142649.txt
+  Tipo: Archivo de texto
+  Tamaño: 0 bytes
+
+• performance_metrics_202500lu_142649.xml
+  Tipo: SharedPreferences XML
+  Tamaño: 1960 bytes
+
+• storage_logs_202500lu_142649.txt
+  Tipo: Archivo de texto
+  Tamaño: 0 bytes
+
+• STORAGE_REPORT_202500lu_142649.txt
+  Tipo: Archivo de texto
+  Tamaño: 1334 bytes
+
+• tapandtoast_db_202500lu_142649.db
+  Tipo: Room Database
+  Tamaño: 76 bytes
+
+═══════════════════════════════════════════════════════════════════
+📊 ANÁLISIS DE ALMACENAMIENTO
+═══════════════════════════════════════════════════════════════════
+
+🗄️  ROOM DATABASE
+─────────────────────────────────────────────────────────────────
+Estado: ✅ Activa
+Tamaño: 76 bytes
+
+Tablas incluidas:
+  • orders - Historial de órdenes
+  • order_items - Items de cada orden
+  • order_outbox - Cola de sincronización offline
+  • catalog_pages - Caché de catálogo con TTL
+
+🔑 DATASTORE
+─────────────────────────────────────────────────────────────────
+Estado: ✅ Activo
+Tamaño: 100 bytes
+
+Preferencias almacenadas:
+  • last_order_id - Última orden creada
+  • last_order_total - Total de última orden
+  • last_active_pickup_order_id - Orden activa para pickup
+  • user_id - ID del usuario actual
+
+🖼️  CACHÉ DE IMÁGENES (Coil)
+─────────────────────────────────────────────────────────────────
+Estado: ✅ Activo
+
+Configuración:
+  • Memoria: 25% de RAM disponible
+  • Disco: 100 MB máximo
+  • TTL Banners: 7 días
+  • TTL Productos: 2 días
+
+═══════════════════════════════════════════════════════════════════
+💡 CÓMO INSPECCIONAR LOS DATOS
+═══════════════════════════════════════════════════════════════════
+
+📦 BASE DE DATOS ROOM (.db):
+   Herramienta recomendada: DB Browser for SQLite
+   Descarga: https://sqlitebrowser.org/
+   Abre: tapandtoast_db_202500lu_142649.db
+
+🔑 DATASTORE (.pb):
+   Formato binario Protocol Buffer
+   Requiere decodificación o ver en código de la app
+
+📊 LOGS:
+   Abre: storage_logs_202500lu_142649.txt
+   Contiene todas las operaciones de almacenamiento
+
+═══════════════════════════════════════════════════════════════════
+🚀 ESTRATEGIAS IMPLEMENTADAS
+═══════════════════════════════════════════════════════════════════
+
+✅ 1. Order Summary (Confirmación)
+     • Room: orders + order_items
+     • DataStore: last_order_id, last_order_total
+     • Outbox: order_outbox para sincronización offline
+
+✅ 2. Orders (Historial)
+     • Room: Persistencia de órdenes del backend
+     • DataStore: orders_list_digest como fallback
+
+✅ 3. Order Pickup (QR y estados)
+     • Room: Actualización de status (READY/DELIVERED)
+     • DataStore: last_active_pickup_order_id
+
+✅ 4. Home and Categories (Catálogo)
+     • Room: catalog_pages con sistema de versionado
+     • TTL: 30 min (feed/layout), 10 min (productos)
+     • Coil: Caché de imágenes con TTL diferenciado
+
+═══════════════════════════════════════════════════════════════════

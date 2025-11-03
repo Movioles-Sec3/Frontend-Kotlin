@@ -26,7 +26,7 @@ import app.src.data.local.entities.OrderOutboxEntity
         OrderOutboxEntity::class,
         CatalogPageEntity::class
     ],
-    version = 2, // ✅ INCREMENTADO de 1 a 2 por el campo qrCode agregado a OrderEntity
+    version = 3, // ✅ INCREMENTADO de 2 a 3 por los campos de tiempos de entrega agregados a OrderEntity
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

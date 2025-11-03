@@ -17,5 +17,10 @@ data class OrderEntity(
     val readyAt: Long? = null,
     val deliveredAt: Long? = null,
     val userId: Int,
-    val qrCode: String? = null // ✅ NUEVO: Almacenar QR para acceso offline
+    val qrCode: String? = null, // ✅ NUEVO: Almacenar QR para acceso offline
+    // ✅ NUEVO: Tiempos de entrega en segundos
+    val tiempoHastaPreparacion: Double? = null,
+    val tiempoPreparacion: Double? = null,
+    val tiempoEsperaEntrega: Double? = null,
+    val tiempoTotal: Double? = null
 )

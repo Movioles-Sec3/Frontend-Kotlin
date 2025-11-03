@@ -129,7 +129,12 @@ class CompraRepository {
                     readyAt = null,
                     deliveredAt = null,
                     userId = userId,
-                    qrCode = compra.qr?.codigoQrHash // ✅ Guardar QR en Room
+                    qrCode = compra.qr?.codigoQrHash, // ✅ Guardar QR en Room
+                    // ✅ NUEVO: Guardar tiempos de entrega
+                    tiempoHastaPreparacion = compra.tiempoHastaPreparacion,
+                    tiempoPreparacion = compra.tiempoPreparacion,
+                    tiempoEsperaEntrega = compra.tiempoEsperaEntrega,
+                    tiempoTotal = compra.tiempoTotal
                 )
 
                 val orderItems = compra.detalles.map { detalle ->
@@ -195,10 +200,11 @@ class CompraRepository {
             fechaEnPreparacion = null,
             fechaListo = null,
             fechaEntregado = null,
-            tiempoHastaPreparacion = null,
-            tiempoPreparacion = null,
-            tiempoEsperaEntrega = null,
-            tiempoTotal = null
+            // ✅ NUEVO: Recuperar tiempos de entrega desde Room
+            tiempoHastaPreparacion = orderEntity.tiempoHastaPreparacion,
+            tiempoPreparacion = orderEntity.tiempoPreparacion,
+            tiempoEsperaEntrega = orderEntity.tiempoEsperaEntrega,
+            tiempoTotal = orderEntity.tiempoTotal
         )
     }
 

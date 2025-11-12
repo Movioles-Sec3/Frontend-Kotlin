@@ -271,6 +271,10 @@ class OrderPickupActivity : BaseActivity() {
             EstadoCompra.ENTREGADO -> {
                 cardEstadoControl.visibility = View.GONE
             }
+            EstadoCompra.WAITING_CONNECTION -> {
+                // ✅ Para órdenes esperando conexión, no mostrar controles
+                cardEstadoControl.visibility = View.GONE
+            }
             else -> {
                 cardEstadoControl.visibility = View.GONE
             }
@@ -374,6 +378,7 @@ class OrderPickupActivity : BaseActivity() {
             EstadoCompra.EN_PREPARACION -> "In Preparation"
             EstadoCompra.LISTO -> "Ready"
             EstadoCompra.ENTREGADO -> "Delivered"
+            EstadoCompra.WAITING_CONNECTION -> "Waiting Connection" // ✅ Nuevo estado
         }
     }
 
@@ -383,6 +388,7 @@ class OrderPickupActivity : BaseActivity() {
             EstadoCompra.EN_PREPARACION -> getColor(R.color.status_preparing)
             EstadoCompra.LISTO -> getColor(R.color.status_ready)
             EstadoCompra.ENTREGADO -> getColor(R.color.status_delivered)
+            EstadoCompra.WAITING_CONNECTION -> getColor(android.R.color.holo_orange_light) // ✅ Naranja para waiting
             else -> getColor(R.color.text_secondary)
         }
     }

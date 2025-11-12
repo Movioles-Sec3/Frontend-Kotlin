@@ -26,7 +26,7 @@ import app.src.data.local.entities.OrderOutboxEntity
         OrderOutboxEntity::class,
         CatalogPageEntity::class
     ],
-    version = 3, // ✅ INCREMENTADO de 2 a 3 por los campos de tiempos de entrega agregados a OrderEntity
+    version = 4, // ✅ INCREMENTADO de 3 a 4 por el campo tempOrderId agregado a OrderOutboxEntity
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

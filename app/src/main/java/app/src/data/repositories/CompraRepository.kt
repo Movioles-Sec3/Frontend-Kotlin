@@ -14,6 +14,7 @@ import app.src.data.models.Producto
 import app.src.data.models.TipoProducto
 import app.src.utils.NetworkUtils
 import app.src.utils.CartManager
+import app.src.utils.SessionManager
 import app.src.data.local.AppDatabase
 import app.src.data.local.DataStoreManager
 import app.src.data.local.entities.OrderEntity
@@ -173,7 +174,8 @@ class CompraRepository {
                 "ENTREGADO" -> EstadoCompra.ENTREGADO
                 "EN_PREPARACION" -> EstadoCompra.EN_PREPARACION
                 "PAGADO" -> EstadoCompra.PAGADO
-                "PENDIENTE_SINCRONIZAR" -> EstadoCompra.PAGADO // Mostrar como PAGADO
+                "WAITING_CONNECTION" -> EstadoCompra.WAITING_CONNECTION // ✅ Mostrar como WAITING_CONNECTION
+                "PENDIENTE_SINCRONIZAR" -> EstadoCompra.WAITING_CONNECTION // ✅ También para compatibilidad
                 else -> EstadoCompra.CARRITO
             },
             detalles = items.map { item ->
@@ -218,14 +220,28 @@ class CompraRepository {
     }
 
     /**
-     * Crea una nueva compra
-     * Soporta modo offline guardando en outbox
+     * ✅ REQUERIMIENTO 3: Crea una nueva compra con validación de saldo offline
+     * Soporta modo offline guardando en outbox SOLO si el saldo es suficiente
      */
     suspend fun crearCompra(context: Context, compraRequest: CompraRequest): Result<Compra> {
         val database = AppDatabase.getDatabase(context)
         val dataStore = DataStoreManager(context)
         val userId = dataStore.userId.first() ?: 0
         val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
+
+        // ✅ CALCULAR TOTAL DE LA COMPRA
+        val estimatedTotal = CartManager.getTotal()
+
+        // ✅ OBTENER SALDO DEL USUARIO (de SharedPreferences/Session)
+        val userBalance = SessionManager.getUserBalance(context)
+
+        // ✅ VALIDAR SALDO ANTES DE PROCESAR (ONLINE Y OFFLINE)
+        if (estimatedTotal > userBalance) {
+            Log.w(TAG, "❌ Saldo insuficiente: Total=$estimatedTotal, Saldo=$userBalance")
+            return Result.Error("Saldo insuficiente. Tu saldo actual es $$userBalance y el total es $$estimatedTotal")
+        }
+
+        Log.d(TAG, "✅ Validación de saldo OK: Total=$estimatedTotal, Saldo=$userBalance")
 
         // ✅ SI NO HAY INTERNET, GUARDAR EN OUTBOX DIRECTAMENTE (SIN INTENTAR CONECTAR)
         if (!hasInternet) {
@@ -234,26 +250,24 @@ class CompraRepository {
             return try {
                 val currentTime = System.currentTimeMillis()
 
-                // 1. Guardar en outbox para sincronizar después
-                val outboxEntry = OrderOutboxEntity(
-                    payloadJson = gson.toJson(compraRequest),
-                    createdAt = currentTime,
-                    retries = 0
-                )
-                val outboxId = database.orderOutboxDao().insert(outboxEntry)
-
                 // 2. ✅ OBTENER EL SIGUIENTE ID DE ORDEN (continúa desde la última orden)
                 val maxOrderId = database.orderDao().getMaxOrderId() ?: 0
                 val nextOrderId = maxOrderId + 1
 
                 Log.d(TAG, "📊 Último ID de orden: $maxOrderId, nuevo ID: $nextOrderId")
 
-                // Calcular total estimado desde los productos del carrito
-                val estimatedTotal = CartManager.getTotal()
+                // 1. Guardar en outbox para sincronizar después (con el ID temporal)
+                val outboxEntry = OrderOutboxEntity(
+                    payloadJson = gson.toJson(compraRequest),
+                    createdAt = currentTime,
+                    retries = 0,
+                    tempOrderId = nextOrderId // ✅ Guardar el ID temporal de la orden
+                )
+                val outboxId = database.orderOutboxDao().insert(outboxEntry)
 
                 val tempOrderEntity = OrderEntity(
                     id = nextOrderId,
-                    status = "PENDIENTE_SINCRONIZAR", // Estado especial para órdenes offline
+                    status = "WAITING_CONNECTION", // ✅ NUEVO: Estado "Esperando Conexión"
                     total = estimatedTotal,
                     createdAt = currentTime,
                     readyAt = null,
@@ -279,7 +293,11 @@ class CompraRepository {
                 // 4. Guardar orden temporal en Room
                 database.orderDao().insertOrderWithItems(tempOrderEntity, orderItems)
 
-                Log.d(TAG, "📤 Orden temporal ID:$nextOrderId guardada en historial (pendiente de sincronizar)")
+                // ✅ 5. DESCONTAR SALDO LOCALMENTE (se confirmará al sincronizar)
+                SessionManager.updateBalance(context, userBalance - estimatedTotal)
+
+                Log.d(TAG, "📤 Orden temporal ID:$nextOrderId guardada (WAITING_CONNECTION)")
+                Log.d(TAG, "💰 Saldo descontado localmente: $userBalance -> ${userBalance - estimatedTotal}")
                 Log.d(TAG, "📤 Orden guardada en outbox ID:$outboxId para sincronizar después")
 
                 Result.Error("Sin conexión. Tu orden se guardó y se procesará cuando tengas internet.")
@@ -339,25 +357,26 @@ class CompraRepository {
                 try {
                     val currentTime = System.currentTimeMillis()
 
-                    // 1. Guardar en outbox para sincronizar después
-                    val outboxEntry = OrderOutboxEntity(
-                        payloadJson = gson.toJson(compraRequest),
-                        createdAt = currentTime,
-                        retries = 0
-                    )
-                    val outboxId = database.orderOutboxDao().insert(outboxEntry)
-
                     // 2. ✅ OBTENER EL SIGUIENTE ID DE ORDEN (continúa desde la última orden)
                     val maxOrderId = database.orderDao().getMaxOrderId() ?: 0
                     val nextOrderId = maxOrderId + 1
 
                     Log.d(TAG, "📊 Último ID de orden: $maxOrderId, nuevo ID: $nextOrderId")
 
+                    // 1. Guardar en outbox para sincronizar después (con el ID temporal)
+                    val outboxEntry = OrderOutboxEntity(
+                        payloadJson = gson.toJson(compraRequest),
+                        createdAt = currentTime,
+                        retries = 0,
+                        tempOrderId = nextOrderId // ✅ Guardar el ID temporal
+                    )
+                    val outboxId = database.orderOutboxDao().insert(outboxEntry)
+
                     val estimatedTotal = CartManager.getTotal()
 
                     val tempOrderEntity = OrderEntity(
                         id = nextOrderId,
-                        status = "PENDIENTE_SINCRONIZAR",
+                        status = "WAITING_CONNECTION", // ✅ Usar WAITING_CONNECTION en lugar de PENDIENTE_SINCRONIZAR
                         total = estimatedTotal,
                         createdAt = currentTime,
                         readyAt = null,
@@ -501,5 +520,144 @@ class CompraRepository {
             Log.e(TAG, "❌ Error al escanear QR: ${e.message}")
             Result.Error(e.message ?: "Error de conexión")
         }
+    }
+
+    /**
+     * ✅ REQUERIMIENTO 3: Sincroniza órdenes pendientes del outbox con el servidor
+     * Se ejecuta automáticamente cuando:
+     * 1. El usuario entra a OrderHistoryActivity
+     * 2. Hay conexión a internet disponible
+     * 3. Hay órdenes en el outbox pendientes de sincronizar
+     *
+     * @return Número de órdenes sincronizadas exitosamente
+     */
+    suspend fun sincronizarOrdenesOffline(context: Context): Int {
+        val database = AppDatabase.getDatabase(context)
+        val dataStore = DataStoreManager(context)
+        val userId = dataStore.userId.first() ?: 0
+
+        // Verificar si hay internet
+        val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
+        if (!hasInternet) {
+            Log.d(TAG, "📵 Sin internet, no se puede sincronizar")
+            return 0
+        }
+
+        // Obtener todas las órdenes pendientes del outbox
+        val pendingOrders = database.orderOutboxDao().getAllPending()
+        if (pendingOrders.isEmpty()) {
+            Log.d(TAG, "✅ No hay órdenes pendientes de sincronizar")
+            return 0
+        }
+
+        Log.d(TAG, "🔄 Sincronizando ${pendingOrders.size} órdenes pendientes...")
+        var syncedCount = 0
+
+        for (outboxEntry in pendingOrders) {
+            try {
+                // Deserializar la orden desde JSON
+                val compraRequest = gson.fromJson(outboxEntry.payloadJson, CompraRequest::class.java)
+
+                // Intentar enviar al servidor
+                val response = api.crearCompra("Bearer ${ApiClient.getToken()}", compraRequest)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val compra = response.body()!!
+
+                    // ✅ ORDEN SINCRONIZADA EXITOSAMENTE
+                    Log.d(TAG, "✅ Orden sincronizada: Outbox ID=${outboxEntry.id} -> Server ID=${compra.id}")
+
+                    // 1. Obtener la orden temporal de Room usando el tempOrderId guardado
+                    val tempOrder = outboxEntry.tempOrderId?.let {
+                        database.orderDao().getOrderById(it)
+                    }
+
+                    // 2. Eliminar la orden temporal con estado WAITING_CONNECTION
+                    if (tempOrder != null) {
+                        Log.d(TAG, "🗑️ Eliminando orden temporal ID=${tempOrder.id} con estado ${tempOrder.status}")
+                        database.orderDao().updateOrderStatus(
+                            tempOrder.id,
+                            "SINCRONIZADO_ELIMINADO",
+                            System.currentTimeMillis()
+                        )
+                    }
+
+                    // 3. Guardar la orden real del servidor en Room con estado PAGADO
+                    val orderEntity = OrderEntity(
+                        id = compra.id,
+                        status = compra.estado.name, // ✅ Estado del servidor (PAGADO)
+                        total = compra.total,
+                        createdAt = System.currentTimeMillis(),
+                        userId = userId,
+                        qrCode = compra.qr?.codigoQrHash
+                    )
+
+                    val orderItems = compraRequest.productos.mapNotNull { detalle ->
+                        // Buscar nombre del producto desde la orden temporal
+                        tempOrder?.let {
+                            val tempItems = database.orderDao().getOrderItems(it.id)
+                            val tempItem = tempItems.find { item -> item.productId == detalle.idProducto }
+                            tempItem?.let { item ->
+                                OrderItemEntity(
+                                    orderId = compra.id,
+                                    productId = detalle.idProducto,
+                                    name = item.name,
+                                    quantity = detalle.cantidad,
+                                    price = item.price
+                                )
+                            }
+                        } ?: OrderItemEntity(
+                            orderId = compra.id,
+                            productId = detalle.idProducto,
+                            name = "Producto ${detalle.idProducto}",
+                            quantity = detalle.cantidad,
+                            price = 0.0
+                        )
+                    }
+
+                    database.orderDao().insertOrderWithItems(orderEntity, orderItems)
+
+                    // 4. Guardar en DataStore
+                    dataStore.saveLastOrder(compra.id, compra.total)
+
+                    // 5. Eliminar del outbox
+                    database.orderOutboxDao().delete(outboxEntry.id)
+
+                    syncedCount++
+                    Log.d(TAG, "💾 Orden sincronizada: Temp ID=${tempOrder?.id} -> Server ID=${compra.id} con estado ${compra.estado.name}")
+
+                } else {
+                    // Error en el servidor, incrementar reintentos
+                    val newRetries = outboxEntry.retries + 1
+                    database.orderOutboxDao().updateRetries(
+                        outboxEntry.id,
+                        newRetries,
+                        System.currentTimeMillis()
+                    )
+                    Log.w(TAG, "⚠️ Error sincronizando orden ${outboxEntry.id}: ${response.code()}, reintentos: $newRetries")
+                }
+
+            } catch (e: Exception) {
+                // Error de conexión o parsing, incrementar reintentos
+                val newRetries = outboxEntry.retries + 1
+                database.orderOutboxDao().updateRetries(
+                    outboxEntry.id,
+                    newRetries,
+                    System.currentTimeMillis()
+                )
+                Log.e(TAG, "❌ Error sincronizando orden ${outboxEntry.id}: ${e.message}, reintentos: $newRetries")
+            }
+        }
+
+        Log.d(TAG, "🎉 Sincronización completada: $syncedCount/${pendingOrders.size} órdenes sincronizadas")
+        return syncedCount
+    }
+
+    /**
+     * ✅ Obtiene el número de órdenes pendientes de sincronizar
+     */
+    suspend fun getOrdenesOfflinePendientes(context: Context): Int {
+        val database = AppDatabase.getDatabase(context)
+        return database.orderOutboxDao().getPendingCount()
     }
 }

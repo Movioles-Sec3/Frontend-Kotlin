@@ -13,6 +13,7 @@ data class OrderOutboxEntity(
     val payloadJson: String,
     val createdAt: Long,
     val retries: Int = 0,
-    val lastAttempt: Long? = null
+    val lastAttempt: Long? = null,
+    val tempOrderId: Int? = null // ✅ ID de la orden temporal en la tabla orders
 )
 

@@ -117,6 +117,25 @@ class CompraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
+     * ✅ REQUERIMIENTO 3: Sincroniza órdenes pendientes del outbox
+     * Se ejecuta automáticamente al cargar el historial si hay conexión
+     */
+    suspend fun sincronizarOrdenesOffline(): Int {
+        return withContext(Dispatchers.IO) {
+            repo.sincronizarOrdenesOffline(getApplication())
+        }
+    }
+
+    /**
+     * ✅ Obtiene el número de órdenes pendientes de sincronizar
+     */
+    suspend fun getOrdenesOfflinePendientes(): Int {
+        return withContext(Dispatchers.IO) {
+            repo.getOrdenesOfflinePendientes(getApplication())
+        }
+    }
+
+    /**
      * Actualiza el estado de una compra (requiere internet)
      */
     fun actualizarEstado(compraId: Int, nuevoEstado: String) {

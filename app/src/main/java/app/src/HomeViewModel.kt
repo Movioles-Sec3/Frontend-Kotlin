@@ -13,6 +13,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import app.src.data.local.CatalogCacheManager
+import app.src.data.local.GuavaCache
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -95,11 +96,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Loads recommended products and updates both [productosRecomendados] and [uiState].
      *
-     * Estrategia: Cache-First
-     * 1. Lee del caché local primero (instantáneo)
-     * 2. Muestra datos cacheados si existen
-     * 3. Actualiza desde red en background
-     * 4. Si no hay caché o falla la red, muestra error solo si es necesario
+     * ✅ REQUERIMIENTO 1 & 2: Estrategia de caché multicapa + Multithreading
+     * 
+     * Capas de caché:
+     * 1. Guava Cache (memoria, más rápido, TTL 5 min) - NUEVO
+     * 2. Room Database (disco, persistente)
+     * 3. Red (API)
+     * 
+     * Dispatchers utilizados:
+     * - Dispatchers.Default: Cálculos pesados (parsing, transformaciones)
+     * - Dispatchers.IO: Operaciones de red y BD
+     * - Dispatchers.Unconfined: Lecturas de caché muy rápidas
+     * - Dispatchers.Main: Actualización de UI
      */
     fun cargarProductosRecomendados() {
         viewModelScope.launch {
@@ -108,8 +116,33 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val startTime = System.currentTimeMillis()
 
             try {
-                // 1) Intentar cargar desde caché primero
-                val cachedData = withContext(Dispatchers.IO) {
+                // ✅ NIVEL 1: Guava Cache (más rápido, en memoria)
+                val guavaData = withContext(Dispatchers.Unconfined) {
+                    // Unconfined para lecturas ultra rápidas sin cambio de thread
+                    GuavaCache.getRecommended<List<Producto>>("home:recommended:v1")
+                }
+
+                if (guavaData != null && guavaData.isNotEmpty()) {
+                    Log.d(TAG, "⚡ Cargando desde GUAVA CACHE: ${guavaData.size} productos")
+                    val productosLimitados = guavaData.take(5)
+                    _productosRecomendados.value = productosLimitados
+                    _uiState.value = HomeUiState.Success(productosLimitados)
+
+                    // Precargar imágenes en paralelo usando IO
+                    withContext(Dispatchers.IO) {
+                        val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                        if (imageUrls.isNotEmpty()) {
+                            ImagePreloader.preloadImagesParallel(imageUrls)
+                        }
+                    }
+
+                    // Actualizar desde red en background sin bloquear
+                    actualizarDesdeRed(startTime, false)
+                    return@launch
+                }
+
+                // ✅ NIVEL 2: Room Database (persistente)
+                val roomData = withContext(Dispatchers.IO) {
                     val cacheKey = CatalogCacheManager.KEY_HOME_RECOMMENDED
                     try {
                         catalogCache.getFromCache(cacheKey, Array<Producto>::class.java)?.toList()
@@ -118,24 +151,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                if (cachedData != null && cachedData.isNotEmpty()) {
-                    // Mostrar datos del caché inmediatamente
-                    Log.d(TAG, "✅ Cargando desde CACHÉ: ${cachedData.size} productos")
-                    val productosLimitados = cachedData.take(5)
+                if (roomData != null && roomData.isNotEmpty()) {
+                    Log.d(TAG, "💾 Cargando desde ROOM DATABASE: ${roomData.size} productos")
+
+                    // ✅ USAR Dispatchers.Default para procesamiento pesado de datos
+                    val productosLimitados = withContext(Dispatchers.Default) {
+                        // Filtrado y transformación en thread de CPU
+                        roomData.take(5)
+                    }
+
                     _productosRecomendados.value = productosLimitados
                     _uiState.value = HomeUiState.Success(productosLimitados)
 
-                    // Precargar imágenes desde caché
+                    // Guardar en Guava para próximas lecturas
+                    withContext(Dispatchers.Unconfined) {
+                        GuavaCache.putRecommended("home:recommended:v1", roomData)
+                    }
+
+                    // Precargar imágenes
                     withContext(Dispatchers.IO) {
                         val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
                         if (imageUrls.isNotEmpty()) {
                             ImagePreloader.preloadImagesParallel(imageUrls)
                         }
                     }
+
+                    // Actualizar desde red en background
+                    actualizarDesdeRed(startTime, false)
+                    return@launch
                 }
 
-                // 2) Actualizar desde red en background (sin bloquear UI)
-                actualizarDesdeRed(startTime, cachedData == null)
+                // ✅ NIVEL 3: Red (si no hay caché)
+                Log.d(TAG, "🌐 Sin caché disponible, cargando desde RED...")
+                actualizarDesdeRed(startTime, true)
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error al cargar productos: ${e.message}")
@@ -184,10 +232,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Carga paralela: Catálogo e imágenes simultáneamente + guardar en caché
+     * Carga paralela: Catálogo e imágenes simultáneamente + guardar en caché multicapa
+     * ✅ REQUERIMIENTO 2: Usa Dispatchers.IO para red, Default para procesamiento
      */
     private suspend fun cargarEnParaleloConCache(startTime: Long) {
-        Log.d(TAG, "🚀 Iniciando carga PARALELA")
+        Log.d(TAG, "🚀 Iniciando carga PARALELA con múltiples dispatchers")
 
         val catalogStartTime = System.currentTimeMillis()
 
@@ -200,21 +249,35 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         when (val result = catalogDeferred.await()) {
             is Result.Success -> {
                 val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
-                val productosLimitados = result.data.take(5)
 
-                // Guardar en caché
-                withContext(Dispatchers.IO) {
+                // ✅ USAR Dispatchers.Default para procesamiento de datos
+                val productosLimitados = withContext(Dispatchers.Default) {
+                    Log.d(TAG, "🧮 Procesando ${result.data.size} productos en Dispatchers.Default")
+                    result.data.take(5)
+                }
+
+                // ✅ Guardar en AMBOS cachés en paralelo usando async
+                val saveGuavaJob = viewModelScope.async(Dispatchers.Unconfined) {
+                    GuavaCache.putRecommended("home:recommended:v1", result.data)
+                    Log.d(TAG, "💾 Guardado en Guava Cache")
+                }
+
+                val saveRoomJob = viewModelScope.async(Dispatchers.IO) {
                     val cacheKey = CatalogCacheManager.KEY_HOME_RECOMMENDED
                     catalogCache.saveToCache(
                         cacheKey,
                         result.data,
                         CatalogCacheManager.TTL_RECOMMENDED
                     )
+                    Log.d(TAG, "💾 Guardado en Room Database")
+                }
+
+                // Preparar URLs de imágenes en Default dispatcher
+                val imageUrls = withContext(Dispatchers.Default) {
+                    productosLimitados.mapNotNull { it.imagenUrl }
                 }
 
                 val imageStartTime = System.currentTimeMillis()
-                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
-
                 val imagesDeferred = viewModelScope.async(Dispatchers.IO) {
                     if (imageUrls.isNotEmpty()) {
                         ImagePreloader.preloadImagesParallel(imageUrls)
@@ -223,12 +286,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                // Actualizar UI en Main
                 withContext(Dispatchers.Main) {
                     _productosRecomendados.value = productosLimitados
                     _uiState.value = HomeUiState.Success(productosLimitados)
                 }
 
+                // Esperar a que terminen todas las tareas en paralelo
+                saveGuavaJob.await()
+                saveRoomJob.await()
                 val imagesLoadTime = imagesDeferred.await()
+
                 val totalTime = System.currentTimeMillis() - startTime
                 val menuReadyTime = totalTime
 
@@ -241,7 +309,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     productCount = productosLimitados.size
                 )
 
-                Log.d(TAG, "✅ Carga PARALELA desde RED completada y guardada en caché")
+                Log.d(TAG, "✅ Carga PARALELA completada (IO + Default + Unconfined dispatchers)")
+                GuavaCache.logAllStats() // Mostrar estadísticas
             }
             is Result.Error -> {
                 Log.w(TAG, "Error al actualizar desde red: ${result.message}")
@@ -253,10 +322,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Carga secuencial: Catálogo primero, luego imágenes + guardar en caché
+     * Carga secuencial: Catálogo primero, luego imágenes + guardar en caché multicapa
+     * ✅ REQUERIMIENTO 2: Usa Dispatchers.IO, Default y Unconfined
      */
     private suspend fun cargarEnSecuenciaConCache(startTime: Long) {
-        Log.d(TAG, "📦 Iniciando carga SECUENCIAL")
+        Log.d(TAG, "📦 Iniciando carga SECUENCIAL con múltiples dispatchers")
 
         val catalogStartTime = System.currentTimeMillis()
 
@@ -268,9 +338,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         when (result) {
             is Result.Success -> {
                 val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
-                val productosLimitados = result.data.take(5)
 
-                // Guardar en caché
+                // ✅ Procesamiento en Dispatchers.Default
+                val productosLimitados = withContext(Dispatchers.Default) {
+                    Log.d(TAG, "🧮 Procesando ${result.data.size} productos en Dispatchers.Default")
+                    result.data.take(5)
+                }
+
+                // ✅ Guardar en Guava (rápido, Unconfined)
+                withContext(Dispatchers.Unconfined) {
+                    GuavaCache.putRecommended("home:recommended:v1", result.data)
+                    Log.d(TAG, "💾 Guardado en Guava Cache")
+                }
+
+                // ✅ Guardar en Room (IO)
                 withContext(Dispatchers.IO) {
                     val cacheKey = CatalogCacheManager.KEY_HOME_RECOMMENDED
                     catalogCache.saveToCache(
@@ -278,17 +359,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         result.data,
                         CatalogCacheManager.TTL_RECOMMENDED
                     )
+                    Log.d(TAG, "💾 Guardado en Room Database")
                 }
 
+                // Actualizar UI
                 withContext(Dispatchers.Main) {
                     _productosRecomendados.value = productosLimitados
                     _uiState.value = HomeUiState.Success(productosLimitados)
                 }
 
+                // Precargar imágenes
                 val imageStartTime = System.currentTimeMillis()
-                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                val imageUrls = withContext(Dispatchers.Default) {
+                    productosLimitados.mapNotNull { it.imagenUrl }
+                }
+
                 val imagesLoadTime = if (imageUrls.isNotEmpty()) {
-                    ImagePreloader.preloadImagesParallel(imageUrls)
+                    withContext(Dispatchers.IO) {
+                        ImagePreloader.preloadImagesParallel(imageUrls)
+                    }
                 } else {
                     0L
                 }
@@ -305,7 +394,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     productCount = productosLimitados.size
                 )
 
-                Log.d(TAG, "✅ Carga SECUENCIAL desde RED completada y guardada en caché")
+                Log.d(TAG, "✅ Carga SECUENCIAL completada (IO + Default + Unconfined dispatchers)")
+                GuavaCache.logAllStats() // Mostrar estadísticas
             }
             is Result.Error -> {
                 Log.w(TAG, "Error al actualizar desde red: ${result.message}")

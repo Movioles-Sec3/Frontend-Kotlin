@@ -46,6 +46,21 @@ object SessionManager {
         return getPreferences(context).getFloat(KEY_USER_SALDO, 0f).toDouble()
     }
 
+    /**
+     * ✅ REQUERIMIENTO 3: Obtiene el saldo del usuario (alias para compatibilidad)
+     */
+    fun getUserBalance(context: Context): Double {
+        return getUserSaldo(context)
+    }
+
+    /**
+     * ✅ REQUERIMIENTO 3: Actualiza el saldo del usuario localmente
+     * Se usa cuando se hace checkout offline para descontar el saldo
+     */
+    fun updateBalance(context: Context, newBalance: Double) {
+        getPreferences(context).edit().putFloat(KEY_USER_SALDO, newBalance.toFloat()).apply()
+    }
+
     fun isLoggedIn(context: Context): Boolean {
         return getToken(context) != null
     }

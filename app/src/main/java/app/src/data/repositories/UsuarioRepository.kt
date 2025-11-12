@@ -90,7 +90,19 @@ class UsuarioRepository {
                 Result.Error(parseError(response), response.code())
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Error de conexión")
+            // ✅ Detectar errores de conexión específicamente
+            val isConnectionError = e.message?.contains("failed to connect", ignoreCase = true) == true ||
+                    e.message?.contains("Unable to resolve host", ignoreCase = true) == true ||
+                    e.message?.contains("timeout", ignoreCase = true) == true ||
+                    e is java.net.ConnectException ||
+                    e is java.net.SocketTimeoutException ||
+                    e is java.net.UnknownHostException
+
+            if (isConnectionError) {
+                Result.Error("NO_INTERNET")
+            } else {
+                Result.Error(e.message ?: "Error de conexión")
+            }
         }
     }
 

@@ -92,7 +92,8 @@ enum class EstadoCompra {
     @SerializedName("PAGADO") PAGADO,
     @SerializedName("EN_PREPARACION") EN_PREPARACION,
     @SerializedName("LISTO") LISTO,
-    @SerializedName("ENTREGADO") ENTREGADO
+    @SerializedName("ENTREGADO") ENTREGADO,
+    @SerializedName("WAITING_CONNECTION") WAITING_CONNECTION // ✅ Nuevo estado para órdenes offline
 }
 
 data class Compra(

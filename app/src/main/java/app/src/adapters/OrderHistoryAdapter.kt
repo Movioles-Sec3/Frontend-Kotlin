@@ -100,6 +100,7 @@ class OrderHistoryAdapter(
             EstadoCompra.EN_PREPARACION -> "In Preparation"
             EstadoCompra.LISTO -> "Ready"
             EstadoCompra.ENTREGADO -> "Delivered"
+            EstadoCompra.WAITING_CONNECTION -> "Waiting Connection" // ✅ Nuevo estado
         }
     }
 
@@ -109,6 +110,7 @@ class OrderHistoryAdapter(
             EstadoCompra.EN_PREPARACION -> context.getColor(R.color.status_preparing)
             EstadoCompra.LISTO -> context.getColor(R.color.status_ready)
             EstadoCompra.ENTREGADO -> context.getColor(R.color.status_delivered)
+            EstadoCompra.WAITING_CONNECTION -> context.getColor(android.R.color.holo_orange_light) // ✅ Color naranja para waiting
             else -> context.getColor(R.color.text_secondary)
         }
     }

@@ -8,12 +8,14 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.OrderHistoryAdapter
 import app.src.data.api.ApiClient
 import app.src.utils.NetworkUtils
 import app.src.utils.SessionManager
+import kotlinx.coroutines.launch
 
 class OrderHistoryActivity : BaseActivity() {
 
@@ -49,6 +51,22 @@ class OrderHistoryActivity : BaseActivity() {
                 "📱 Modo Offline: Mostrando historial y códigos QR desde caché",
                 Toast.LENGTH_LONG
             ).show()
+        } else {
+            // ✅ REQUERIMIENTO 3: Sincronizar órdenes offline automáticamente si hay conexión
+            lifecycleScope.launch {
+                try {
+                    val syncedCount = viewModel.sincronizarOrdenesOffline()
+                    if (syncedCount > 0) {
+                        Toast.makeText(
+                            this@OrderHistoryActivity,
+                            "✅ Se sincronizaron $syncedCount pedidos pendientes",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } catch (e: Exception) {
+                    // Ignorar errores de sincronización silenciosamente
+                }
+            }
         }
 
         // Observer

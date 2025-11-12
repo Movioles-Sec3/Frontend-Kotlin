@@ -365,16 +365,23 @@ class HomeActivity : BaseActivity() {
                     ).show()
                 }
                 is Result.Error -> {
+                    // ✅ Mensaje amigable para error de conexión
+                    val errorMessage = if (result.message == "NO_INTERNET") {
+                        "📡 No se puede recargar saldo sin conexión a internet. Por favor, verifica tu conexión e intenta nuevamente."
+                    } else {
+                        "Error al recargar saldo: ${result.message}"
+                    }
+
                     Toast.makeText(
                         this@HomeActivity,
-                        "Error recharging balance: ${result.message}",
+                        errorMessage,
                         Toast.LENGTH_LONG
                     ).show()
                 }
                 else -> {
                     Toast.makeText(
                         this@HomeActivity,
-                        "Unknown error",
+                        "Error desconocido al recargar saldo",
                         Toast.LENGTH_SHORT
                     ).show()
                 }

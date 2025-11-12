@@ -109,6 +109,9 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
     ksp("com.github.bumptech.glide:ksp:4.16.0")
 
+    // ✅ REQUERIMIENTO 1: Guava Cache - Librería profesional de cache en memoria (compatible API 24+)
+    implementation("com.google.guava:guava:31.1-android")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -116,19 +116,45 @@ class OrderSummaryActivity : BaseActivity() {
                     progressBar.visibility = View.GONE
                     btnCheckout.isEnabled = true
 
-                    // Emitir evento de pago fallido
-                    Log.d(TAG, "❌ Pago fallido - Emitiendo evento payment_completed (success=false)")
-                    emitPaymentCompletedEvent(success = false, paymentMethod = "wallet")
+                    // ✅ DETECTAR SI ES ORDEN GUARDADA EN OUTBOX (MODO OFFLINE)
+                    val isOfflineOrder = state.message.contains("se guardó", ignoreCase = true) ||
+                            state.message.contains("procesará cuando", ignoreCase = true)
 
-                    val errorMessage = when {
-                        state.message.contains("Saldo insuficiente", ignoreCase = true) ->
-                            "Insufficient balance. Please recharge your account."
-                        state.message.contains("disponible", ignoreCase = true) ->
-                            "One or more products are not available."
-                        else -> "Error: ${state.message}"
+                    if (isOfflineOrder) {
+                        // Orden guardada exitosamente en modo offline
+                        Log.d(TAG, "📤 Orden guardada en outbox - modo offline")
+                        emitPaymentCompletedEvent(success = true, paymentMethod = "wallet_offline")
+
+                        // Limpiar carrito
+                        CartManager.clear()
+
+                        // Mostrar mensaje positivo
+                        Toast.makeText(
+                            this,
+                            "✅ Tu pedido se guardó correctamente. Se procesará cuando haya conexión.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        // Volver al Home
+                        val intent = Intent(this, HomeActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        startActivity(intent)
+                        finish()
+                    } else {
+                        // Error real de pago
+                        Log.d(TAG, "❌ Pago fallido - Emitiendo evento payment_completed (success=false)")
+                        emitPaymentCompletedEvent(success = false, paymentMethod = "wallet")
+
+                        val errorMessage = when {
+                            state.message.contains("Saldo insuficiente", ignoreCase = true) ->
+                                "Insufficient balance. Please recharge your account."
+                            state.message.contains("disponible", ignoreCase = true) ->
+                                "One or more products are not available."
+                            else -> "Error: ${state.message}"
+                        }
+
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                     }
-
-                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                 }
                 else -> {
                     progressBar.visibility = View.GONE
@@ -143,38 +169,8 @@ class OrderSummaryActivity : BaseActivity() {
                 return@setOnClickListener
             }
 
-            // ✅ VALIDAR CONEXIÓN A INTERNET ANTES DE PROCESAR COMPRA
-            if (!NetworkUtils.isNetworkAvailable(this)) {
-                androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Sin Conexión a Internet")
-                    .setMessage("No es posible realizar la compra sin conexión a internet.\n\nTu carrito se ha guardado y estará disponible cuando vuelvas a tener conexión.")
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton("Entendido") { dialog, _ ->
-                        dialog.dismiss()
-                    }
-                    .show()
-                Log.w(TAG, "⚠️ Intento de compra sin internet - Carrito guardado")
-                return@setOnClickListener
-            }
-
-            // Verify user balance
-            val userSaldo = SessionManager.getUserSaldo(this)
-            val total = CartManager.getTotal()
-
-            if (userSaldo < total) {
-                Toast.makeText(
-                    this,
-                    "Insufficient balance. Please recharge your account.\nCurrent balance: ${String.format(Locale.US, "$%.2f", userSaldo)}\nTotal: ${String.format(Locale.US, "$%.2f", total)}",
-                    Toast.LENGTH_LONG
-                ).show()
-                return@setOnClickListener
-            }
-
-            // Iniciar el timer de pago
-            payTapStartTime = System.currentTimeMillis()
-            Log.d(TAG, "💳 Pago iniciado - Timer iniciado en: $payTapStartTime")
-
-            // Create products list for the purchase
+            // ✅ PERMITIR CHECKOUT OFFLINE - El CompraRepository maneja el modo offline
+            // Crear lista de productos para la compra
             val productos = CartManager.getItems().map { item ->
                 DetalleCompraRequest(
                     idProducto = item.producto.id,
@@ -182,7 +178,7 @@ class OrderSummaryActivity : BaseActivity() {
                 )
             }
 
-            // Create purchase
+            // Crear compra (funciona online y offline gracias a CompraRepository)
             viewModel.crearCompra(productos)
         }
 
@@ -207,9 +203,19 @@ class OrderSummaryActivity : BaseActivity() {
             adapter.updateItems(items)
         }
 
-        val total = CartManager.getTotal()
-        tvSubtotal.text = String.format(Locale.US, "$%.2f", total)
-        tvTotal.text = String.format(Locale.US, "$%.2f", total)
+        // ✅ USAR Dispatchers.Default para cálculos pesados del total
+        lifecycleScope.launch {
+            val (subtotal, total) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                // Cálculos complejos en background thread (importante para listas grandes)
+                val calculatedSubtotal = items.sumOf { it.subtotal }
+                val calculatedTotal = calculatedSubtotal // Aquí podrías agregar impuestos, descuentos, etc.
+                Pair(calculatedSubtotal, calculatedTotal)
+            }
+
+            // Actualizar UI en Main thread
+            tvSubtotal.text = String.format(Locale.US, "$%.2f", subtotal)
+            tvTotal.text = String.format(Locale.US, "$%.2f", total)
+        }
     }
 
     private fun updateUserBalance(onComplete: () -> Unit) {

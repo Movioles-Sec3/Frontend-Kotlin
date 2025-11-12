@@ -6,11 +6,15 @@ import android.util.Log
 import app.src.data.models.Producto
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * CartManager - Gestión del Carrito de Compras con Persistencia
  *
  * Características:
+ * - ✅ StateFlow para badge en tiempo real
  * - Almacenamiento en memoria (rápido) + SharedPreferences (persistente)
  * - El carrito NO se pierde al cerrar la app
  * - Sincronización automática entre memoria y disco
@@ -36,6 +40,13 @@ object CartManager {
     // Cache en memoria para acceso rápido
     private val items = mutableMapOf<Int, CartItem>()
 
+    // ✅ StateFlow para Cart Badge - actualizaciones en tiempo real
+    private val _itemCountFlow = MutableStateFlow(0)
+    val itemCountFlow: StateFlow<Int> = _itemCountFlow.asStateFlow()
+
+    private val _totalFlow = MutableStateFlow(0.0)
+    val totalFlow: StateFlow<Double> = _totalFlow.asStateFlow()
+
     /**
      * Inicializa el CartManager con el contexto de la aplicación
      * Debe llamarse al inicio de la app (en Application o Activity principal)
@@ -43,6 +54,7 @@ object CartManager {
     fun init(appContext: Context) {
         context = appContext.applicationContext
         loadFromPreferences()
+        updateFlows()
     }
 
     /**
@@ -80,6 +92,14 @@ object CartManager {
         }
     }
 
+    /**
+     * ✅ Actualiza los StateFlows para que el UI se entere de cambios
+     */
+    private fun updateFlows() {
+        _itemCountFlow.value = getItemCount()
+        _totalFlow.value = getTotal()
+    }
+
     private fun getPreferences(): SharedPreferences? {
         return context?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -91,48 +111,30 @@ object CartManager {
         } else {
             items[producto.id] = CartItem(producto, cantidad)
         }
-        saveToPreferences() // Persistir cambios
+        saveToPreferences()
+        updateFlows() // ✅ Notificar cambios
         Log.d(TAG, "➕ Producto agregado: ${producto.nombre} (cantidad: $cantidad)")
     }
 
     fun removeProduct(productoId: Int) {
         items.remove(productoId)
-        saveToPreferences() // Persistir cambios
+        saveToPreferences()
+        updateFlows() // ✅ Notificar cambios
         Log.d(TAG, "➖ Producto eliminado: ID $productoId")
-    }
-
-    fun updateQuantity(productoId: Int, cantidad: Int) {
-        val item = items[productoId]
-        if (item != null) {
-            if (cantidad <= 0) {
-                items.remove(productoId)
-            } else {
-                item.cantidad = cantidad
-            }
-            saveToPreferences() // Persistir cambios
-            Log.d(TAG, "🔄 Cantidad actualizada: ID $productoId → $cantidad")
-        }
-    }
-
-    fun getItems(): List<CartItem> {
-        return items.values.toList()
-    }
-
-    fun getTotal(): Double {
-        return items.values.sumOf { it.subtotal }
-    }
-
-    fun getItemCount(): Int {
-        return items.values.sumOf { it.cantidad }
     }
 
     fun clear() {
         items.clear()
-        saveToPreferences() // Persistir cambios
+        saveToPreferences()
+        updateFlows() // ✅ Notificar cambios
         Log.d(TAG, "🗑️ Carrito limpiado")
     }
 
-    fun isEmpty(): Boolean {
-        return items.isEmpty()
-    }
+    fun getItems(): List<CartItem> = items.values.toList()
+
+    fun getItemCount(): Int = items.values.sumOf { it.cantidad }
+
+    fun getTotal(): Double = items.values.sumOf { it.subtotal }
+
+    fun isEmpty(): Boolean = items.isEmpty()
 }

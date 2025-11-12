@@ -12,6 +12,9 @@ import kotlinx.coroutines.async
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import app.src.data.local.CatalogCacheManager
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 /**
  * Represents the UI contract for the Home screen.
@@ -56,6 +59,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** Repository used to retrieve product data. */
     private val productoRepository = ProductoRepository()
 
+    /** Cache manager para almacenamiento local */
+    private val catalogCache = CatalogCacheManager(application)
+    private val gson = Gson()
+
     /**
      * Backing field for the UI state.
      * Use [uiState] to observe state changes from the UI layer.
@@ -88,15 +95,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Loads recommended products and updates both [productosRecomendados] and [uiState].
      *
-     * Flow:
-     * 1) Emits [HomeUiState.Loading].
-     * 2) Requests data from [ProductoRepository].
-     * 3) On success:
-     *    - Updates [_productosRecomendados] with the fetched list.
-     *    - Emits [HomeUiState.Success] with the same list.
-     * 4) On failure:
-     *    - Emits [HomeUiState.Error] with a user-facing message.
-     * 5) Any unexpected result falls back to a generic error message.
+     * Estrategia: Cache-First
+     * 1. Lee del caché local primero (instantáneo)
+     * 2. Muestra datos cacheados si existen
+     * 3. Actualiza desde red en background
+     * 4. Si no hay caché o falla la red, muestra error solo si es necesario
      */
     fun cargarProductosRecomendados() {
         viewModelScope.launch {
@@ -105,29 +108,91 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val startTime = System.currentTimeMillis()
 
             try {
-                if (useParallelLoading) {
-                    cargarEnParalelo(startTime)
-                } else {
-                    cargarEnSecuencia(startTime)
+                // 1) Intentar cargar desde caché primero
+                val cachedData = withContext(Dispatchers.IO) {
+                    val cacheKey = CatalogCacheManager.KEY_HOME_RECOMMENDED
+                    try {
+                        catalogCache.getFromCache(cacheKey, Array<Producto>::class.java)?.toList()
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
-                useParallelLoading = !useParallelLoading
+
+                if (cachedData != null && cachedData.isNotEmpty()) {
+                    // Mostrar datos del caché inmediatamente
+                    Log.d(TAG, "✅ Cargando desde CACHÉ: ${cachedData.size} productos")
+                    val productosLimitados = cachedData.take(5)
+                    _productosRecomendados.value = productosLimitados
+                    _uiState.value = HomeUiState.Success(productosLimitados)
+
+                    // Precargar imágenes desde caché
+                    withContext(Dispatchers.IO) {
+                        val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                        if (imageUrls.isNotEmpty()) {
+                            ImagePreloader.preloadImagesParallel(imageUrls)
+                        }
+                    }
+                }
+
+                // 2) Actualizar desde red en background (sin bloquear UI)
+                actualizarDesdeRed(startTime, cachedData == null)
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error al cargar productos: ${e.message}")
-                _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")
+                // Solo mostrar error si no hay datos en caché
+                if (_productosRecomendados.value.isNullOrEmpty()) {
+                    _uiState.value = HomeUiState.Error("Sin conexión. Verifica tu red WiFi.")
+                }
             }
         }
     }
 
     /**
-     * Carga paralela: Catálogo e imágenes simultáneamente
+     * Actualiza datos desde la red y guarda en caché
      */
-    private suspend fun cargarEnParalelo(startTime: Long) {
+    private suspend fun actualizarDesdeRed(startTime: Long, showLoadingIfFails: Boolean) {
+        withContext(Dispatchers.IO) {
+            try {
+                if (useParallelLoading) {
+                    cargarEnParaleloConCache(startTime)
+                } else {
+                    cargarEnSecuenciaConCache(startTime)
+                }
+                useParallelLoading = !useParallelLoading
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error actualizando desde red: ${e.javaClass.simpleName}: ${e.message}")
+                e.printStackTrace()
+
+                // Si no hay datos en caché, mostrar error con mensaje más descriptivo
+                if (showLoadingIfFails && _productosRecomendados.value.isNullOrEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        val errorMessage = when {
+                            e.message?.contains("failed to connect", ignoreCase = true) == true ->
+                                "Servidor no disponible. Verifica que el backend esté funcionando en 192.168.0.9:8080"
+                            e.message?.contains("timeout", ignoreCase = true) == true ->
+                                "Tiempo de espera agotado. El servidor tardó mucho en responder."
+                            else ->
+                                "Error al cargar productos: ${e.message}"
+                        }
+                        _uiState.value = HomeUiState.Error(errorMessage)
+                    }
+                } else {
+                    Log.d(TAG, "⚠️ Error de red ignorado porque hay datos en caché disponibles")
+                }
+            }
+        }
+    }
+
+    /**
+     * Carga paralela: Catálogo e imágenes simultáneamente + guardar en caché
+     */
+    private suspend fun cargarEnParaleloConCache(startTime: Long) {
         Log.d(TAG, "🚀 Iniciando carga PARALELA")
 
         val catalogStartTime = System.currentTimeMillis()
 
         // 1) Launch catalog fetch in background IO thread
-        val catalogDeferred = viewModelScope.async(kotlinx.coroutines.Dispatchers.IO) {
+        val catalogDeferred = viewModelScope.async(Dispatchers.IO) {
             productoRepository.obtenerProductosRecomendados(getApplication<Application>())
         }
 
@@ -137,7 +202,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
                 val productosLimitados = result.data.take(5)
 
-                // 3) Launch image preloading ALSO in background IO, in parallel with UI update
+                // Guardar en caché
+                withContext(Dispatchers.IO) {
+                    val cacheKey = CatalogCacheManager.KEY_HOME_RECOMMENDED
+                    catalogCache.saveToCache(
+                        cacheKey,
+                        result.data,
+                        CatalogCacheManager.TTL_RECOMMENDED
+                    )
+                }
+
                 val imageStartTime = System.currentTimeMillis()
                 val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
 
@@ -149,46 +223,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                // 4) Update LiveData/UI state on Main immediately
-                _productosRecomendados.value = productosLimitados
-                _uiState.value = HomeUiState.Success(productosLimitados)
+                withContext(Dispatchers.Main) {
+                    _productosRecomendados.value = productosLimitados
+                    _uiState.value = HomeUiState.Success(productosLimitados)
+                }
 
-                // 5) Now wait for images + record metrics off main thread
                 val imagesLoadTime = imagesDeferred.await()
                 val totalTime = System.currentTimeMillis() - startTime
                 val menuReadyTime = totalTime
 
-                withContext(Dispatchers.IO) {
-                    registrarMetricas(
-                        loadType = PerformanceMetrics.LoadType.PARALLEL,
-                        catalogLoadTime = catalogLoadTime,
-                        imagesLoadTime = imagesLoadTime,
-                        totalTime = totalTime,
-                        menuReadyTime = menuReadyTime,
-                        productCount = productosLimitados.size
-                    )
-                }
+                registrarMetricas(
+                    loadType = PerformanceMetrics.LoadType.PARALLEL,
+                    catalogLoadTime = catalogLoadTime,
+                    imagesLoadTime = imagesLoadTime,
+                    totalTime = totalTime,
+                    menuReadyTime = menuReadyTime,
+                    productCount = productosLimitados.size
+                )
 
-                Log.d(TAG, """
-                ✅ Carga PARALELA completada:
-                - Catálogo: ${catalogLoadTime}ms
-                - Imágenes: ${imagesLoadTime}ms
-                - Total: ${totalTime}ms
-            """.trimIndent())
+                Log.d(TAG, "✅ Carga PARALELA desde RED completada y guardada en caché")
             }
             is Result.Error -> {
-                _uiState.value = HomeUiState.Error(result.message)
+                Log.w(TAG, "Error al actualizar desde red: ${result.message}")
             }
             else -> {
-                _uiState.value = HomeUiState.Error("Error desconocido")
+                Log.w(TAG, "Resultado desconocido al actualizar desde red")
             }
         }
     }
 
     /**
-     * Carga secuencial: Catálogo primero, luego imágenes
+     * Carga secuencial: Catálogo primero, luego imágenes + guardar en caché
      */
-    private suspend fun cargarEnSecuencia(startTime: Long) {
+    private suspend fun cargarEnSecuenciaConCache(startTime: Long) {
         Log.d(TAG, "📦 Iniciando carga SECUENCIAL")
 
         val catalogStartTime = System.currentTimeMillis()
@@ -203,52 +270,52 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val catalogLoadTime = System.currentTimeMillis() - catalogStartTime
                 val productosLimitados = result.data.take(5)
 
-                // 2) Update UI immediately on main (menu usable even if images still loading)
-                _productosRecomendados.value = productosLimitados
-                _uiState.value = HomeUiState.Success(productosLimitados)
-
-                // 3) Preload images on IO
-                val imageStartTime = System.currentTimeMillis()
-                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
-                val imagesLoadTime = withContext(Dispatchers.IO) {
-                    if (imageUrls.isNotEmpty()) {
-                        ImagePreloader.preloadImagesSequential(imageUrls)
-                    } else {
-                        0L
-                    }
-                }
-
-                val totalTime = System.currentTimeMillis() - startTime
-                val menuReadyTime = catalogLoadTime // menú listo tras catálogo
-
-                // 4) Save metrics on IO
+                // Guardar en caché
                 withContext(Dispatchers.IO) {
-                    registrarMetricas(
-                        loadType = PerformanceMetrics.LoadType.SEQUENTIAL,
-                        catalogLoadTime = catalogLoadTime,
-                        imagesLoadTime = imagesLoadTime,
-                        totalTime = totalTime,
-                        menuReadyTime = menuReadyTime,
-                        productCount = productosLimitados.size
+                    val cacheKey = CatalogCacheManager.KEY_HOME_RECOMMENDED
+                    catalogCache.saveToCache(
+                        cacheKey,
+                        result.data,
+                        CatalogCacheManager.TTL_RECOMMENDED
                     )
                 }
 
-                Log.d(TAG, """
-                ✅ Carga SECUENCIAL completada:
-                - Catálogo: ${catalogLoadTime}ms
-                - Imágenes: ${imagesLoadTime}ms
-                - Total: ${totalTime}ms
-                - Menú listo en: ${menuReadyTime}ms
-            """.trimIndent())
+                withContext(Dispatchers.Main) {
+                    _productosRecomendados.value = productosLimitados
+                    _uiState.value = HomeUiState.Success(productosLimitados)
+                }
+
+                val imageStartTime = System.currentTimeMillis()
+                val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }
+                val imagesLoadTime = if (imageUrls.isNotEmpty()) {
+                    ImagePreloader.preloadImagesParallel(imageUrls)
+                } else {
+                    0L
+                }
+
+                val totalTime = System.currentTimeMillis() - startTime
+                val menuReadyTime = totalTime
+
+                registrarMetricas(
+                    loadType = PerformanceMetrics.LoadType.SEQUENTIAL,
+                    catalogLoadTime = catalogLoadTime,
+                    imagesLoadTime = imagesLoadTime,
+                    totalTime = totalTime,
+                    menuReadyTime = menuReadyTime,
+                    productCount = productosLimitados.size
+                )
+
+                Log.d(TAG, "✅ Carga SECUENCIAL desde RED completada y guardada en caché")
             }
             is Result.Error -> {
-                _uiState.value = HomeUiState.Error(result.message)
+                Log.w(TAG, "Error al actualizar desde red: ${result.message}")
             }
             else -> {
-                _uiState.value = HomeUiState.Error("Error desconocido")
+                Log.w(TAG, "Resultado desconocido al actualizar desde red")
             }
         }
     }
+
     /**
      * Registra métricas de rendimiento
      */

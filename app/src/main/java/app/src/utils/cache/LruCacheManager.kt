@@ -751,6 +751,39 @@ class LruCacheManager private constructor(private val context: Context) {
     }
 
     /**
+     * Reduce el uso de memoria del caché (para responder a presión de memoria)
+     * @param percentageToFree Porcentaje de entradas a eliminar (0-100)
+     */
+    fun trimMemory(percentageToFree: Int) {
+        val percent = percentageToFree.coerceIn(0, 100)
+        Log.d(TAG, "⚠️ Liberando $percent% del caché por presión de memoria")
+
+        // Calcular cuántas entradas eliminar de cada caché
+        val productosToRemove = (productosCache.size() * percent / 100).coerceAtLeast(1)
+        val conversionesToRemove = (conversionesCache.size() * percent / 100).coerceAtLeast(1)
+        val individualsToRemove = (productoIndividualCache.size() * percent / 100).coerceAtLeast(1)
+
+        // Eliminar las entradas más antiguas primero
+        trimCacheByAge(productosCache, productosToRemove)
+        trimCacheByAge(conversionesCache, conversionesToRemove)
+        trimCacheByAge(productoIndividualCache, individualsToRemove)
+
+        Log.d(TAG, "✅ Memoria liberada exitosamente")
+    }
+
+    /**
+     * Elimina las N entradas más antiguas de un caché
+     */
+    private fun <K, V> trimCacheByAge(cache: LruCache<K, CacheEntry<V>>, count: Int) {
+        val snapshot = cache.snapshot()
+        val sortedByAge = snapshot.entries.sortedBy { it.value.timestamp }
+
+        sortedByAge.take(count).forEach { entry ->
+            cache.remove(entry.key)
+        }
+    }
+
+    /**
      * Obtiene estadísticas de rendimiento del cache
      */
     fun getCacheStats(): CacheStats {

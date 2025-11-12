@@ -11,6 +11,7 @@ sealed class LoginUiState {
     object Loading : LoginUiState()
     data class Error(
         @StringRes val message: Int? = null,
+        val customMessage: String? = null, // ✅ NUEVO: Para mensajes personalizados
         @StringRes val userError: Int? = null,
         @StringRes val passError: Int? = null
     ) : LoginUiState()
@@ -45,7 +46,20 @@ class LoginViewModel(private val repo: AuthRepository) : ViewModel() {
                     _uiState.postValue(LoginUiState.Success)
                 }
                 is Result.Error -> {
-                    _uiState.postValue(LoginUiState.Error(message = R.string.err_bad_credentials))
+                    // ✅ MOSTRAR MENSAJE PERSONALIZADO DEL ERROR
+                    val errorMsg = result.message
+                    if (errorMsg.contains("Servidor no disponible", ignoreCase = true) ||
+                        errorMsg.contains("failed to connect", ignoreCase = true)) {
+                        // Error de servidor no disponible
+                        _uiState.postValue(LoginUiState.Error(customMessage = errorMsg))
+                    } else if (errorMsg.contains("Credenciales", ignoreCase = true) ||
+                               result.code == 401) {
+                        // Error de credenciales incorrectas
+                        _uiState.postValue(LoginUiState.Error(message = R.string.err_bad_credentials))
+                    } else {
+                        // Otros errores
+                        _uiState.postValue(LoginUiState.Error(customMessage = errorMsg))
+                    }
                 }
                 else -> {
                     _uiState.postValue(LoginUiState.Error(message = R.string.err_bad_credentials))

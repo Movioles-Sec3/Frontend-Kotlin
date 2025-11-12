@@ -84,6 +84,14 @@ class ProfileActivity : AppCompatActivity() {
         btnCamera.setOnClickListener {
             checkCameraPermissionAndOpen()
         }
+
+        // Long press en botón de cámara para abrir inspector de almacenamiento (debug)
+        btnCamera.setOnLongClickListener {
+            val intent = Intent(this, LocalStorageDebugActivity::class.java)
+            startActivity(intent)
+            Toast.makeText(this, "🔍 Abriendo inspector de almacenamiento", Toast.LENGTH_SHORT).show()
+            true
+        }
     }
 
     private fun loadUserData() {

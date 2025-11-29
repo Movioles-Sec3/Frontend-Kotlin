@@ -153,7 +153,7 @@ import com.google.gson.Gson
  * ============================================================================
  */
 class LruCacheManager private constructor(private val context: Context) {
-
+    // sprint 4
     companion object {
         private const val TAG = "LruCacheManager"
 

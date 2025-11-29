@@ -86,7 +86,7 @@ class ProductoRepository {
                 val response = api.obtenerProducto(productoId)
                 if (response.isSuccessful && response.body() != null) {
                     val producto = response.body()!!
-
+                    // Sprint 4.2
                     // Guardar en LRU cache
                     cacheManager.putProducto(productoId, producto)
 

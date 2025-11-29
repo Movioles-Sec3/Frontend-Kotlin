@@ -127,7 +127,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     val productosLimitados = guavaData.take(5)
                     _productosRecomendados.value = productosLimitados
                     _uiState.value = HomeUiState.Success(productosLimitados)
-
+                    // Sprint 4
                     // Precargar imágenes en paralelo usando IO
                     withContext(Dispatchers.IO) {
                         val imageUrls = productosLimitados.mapNotNull { it.imagenUrl }

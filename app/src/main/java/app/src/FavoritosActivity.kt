@@ -70,6 +70,10 @@ class FavoritosActivity : BaseActivity() {
             products = emptyList(),
             onAddToCart = { product ->
                 CartManager.addProduct(product, 1)
+
+                // Trackear que se agregó desde Favoritos
+                FavoritesAnalyticsActivity.trackAddFromFavorites(this)
+
                 Toast.makeText(
                     this,
                     "${product.nombre} agregado al carrito",

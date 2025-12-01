@@ -19,6 +19,12 @@ interface FavoritoDao {
     fun getAllFavoritos(): Flow<List<FavoritoEntity>>
 
     /**
+     * Obtiene todos los favoritos de una sola vez (sin Flow)
+     */
+    @Query("SELECT * FROM favoritos ORDER BY fechaAgregado DESC")
+    suspend fun getAllFavoritesOnce(): List<FavoritoEntity>
+
+    /**
      * Verifica si un producto está en favoritos
      */
     @Query("SELECT EXISTS(SELECT 1 FROM favoritos WHERE productoId = :productoId)")
@@ -60,4 +66,3 @@ interface FavoritoDao {
     @Query("SELECT * FROM favoritos WHERE idTipo = :tipoId ORDER BY fechaAgregado DESC")
     fun getFavoritosByTipo(tipoId: Int): Flow<List<FavoritoEntity>>
 }
-

@@ -280,6 +280,12 @@ class HomeActivity : BaseActivity() {
             logout()
         }
 
+        // Long press en Logout para abrir analytics secretos de favoritos
+        findViewById<Button>(R.id.btn_logout)?.setOnLongClickListener {
+            startActivity(Intent(this, FavoritesAnalyticsActivity::class.java))
+            true
+        }
+
         // TAMBIÉN: Mantener el long press en el balance como alternativa
         findViewById<TextView>(R.id.tv_saldo)?.setOnLongClickListener {
             showAnalyticsInfo()

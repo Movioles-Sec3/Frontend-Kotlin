@@ -73,6 +73,11 @@
             android:name=".OrderHistoryActivity"
             android:exported="false" />
 
+        <!-- FavoritosActivity -->
+        <activity
+            android:name=".FavoritosActivity"
+            android:exported="false" />
+
         <!-- StaffValidationActivity -->
         <activity
             android:name=".StaffValidationActivity"

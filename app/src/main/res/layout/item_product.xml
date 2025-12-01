@@ -28,6 +28,19 @@
             app:layout_constraintStart_toStartOf="parent"
             tools:src="@drawable/ic_store_24" />
 
+        <!-- Botón de favorito (corazón) -->
+        <ImageButton
+            android:id="@+id/btn_favorite"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/btn_star_big_off"
+            android:contentDescription="Add to favorites"
+            android:padding="8dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:tint="@color/color_secondary" />
+
         <TextView
             android:id="@+id/tv_product_name"
             android:layout_width="0dp"
@@ -37,9 +50,10 @@
             android:textStyle="bold"
             android:textColor="@color/color_primary"
             android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@id/iv_product_image"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toStartOf="@id/btn_favorite" />
 
         <TextView
             android:id="@+id/tv_product_description"

@@ -270,6 +270,11 @@ class HomeActivity : BaseActivity() {
             startActivity(Intent(this, OrderHistoryActivity::class.java))
         }
 
+        // Favorites button - navigate to FavoritosActivity
+        findViewById<Button>(R.id.btn_favorites)?.setOnClickListener {
+            startActivity(Intent(this, FavoritosActivity::class.java))
+        }
+
         // Logout button
         findViewById<Button>(R.id.btn_logout)?.setOnClickListener {
             logout()

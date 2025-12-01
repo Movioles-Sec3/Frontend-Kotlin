@@ -14,10 +14,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.src.adapters.ProductAdapter
 import app.src.data.api.ApiClient
+import app.src.data.repositories.FavoritoRepository
 import app.src.utils.CartManager
 import app.src.utils.ConversionesDialogManager
 import app.src.utils.SessionManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.launch
 
 class ProductActivity : BaseActivity() {
 
@@ -31,6 +33,10 @@ class ProductActivity : BaseActivity() {
     private lateinit var conversionesDialogManager: ConversionesDialogManager
     private lateinit var searchView: SearchView
 
+    // Repository para manejar favoritos
+    private lateinit var favoritoRepository: FavoritoRepository
+    private var favoriteProductIds = mutableSetOf<Int>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product)
@@ -43,6 +49,9 @@ class ProductActivity : BaseActivity() {
 
         // Inicializar manager de conversiones
         conversionesDialogManager = ConversionesDialogManager(this, lifecycleScope)
+
+        // Inicializar repositorio de favoritos
+        favoritoRepository = FavoritoRepository(this)
 
         // Obtener filtro de categoría desde Intent
         val categoryId = intent.getIntExtra("category_id", -1)
@@ -80,9 +89,17 @@ class ProductActivity : BaseActivity() {
             onShowConversions = { product ->
                 // Mostrar conversiones de precio
                 conversionesDialogManager.mostrarConversiones(product.id, product.nombre)
-            }
+            },
+            onToggleFavorite = { product ->
+                // Toggle favorito
+                toggleFavorite(product)
+            },
+            favoriteProductIds = favoriteProductIds
         )
         recyclerView.adapter = adapter
+
+        // Observar favoritos desde la base de datos
+        observeFavorites()
 
         // Observer del ViewModel
         viewModel.uiState.observe(this) { state ->
@@ -148,6 +165,41 @@ class ProductActivity : BaseActivity() {
 
         // Actualizar badge inicial
         updateCartBadge()
+    }
+
+    private fun observeFavorites() {
+        // Observar cambios en favoritos desde Room Database
+        lifecycleScope.launch {
+            favoritoRepository.getAllFavoritos().collect { favoritos ->
+                favoriteProductIds = favoritos.map { it.id }.toMutableSet()
+                adapter.updateFavorites(favoriteProductIds)
+            }
+        }
+    }
+
+    private fun toggleFavorite(product: app.src.data.models.Producto) {
+        lifecycleScope.launch {
+            val result = favoritoRepository.toggleFavorito(product)
+            when (result) {
+                is app.src.data.repositories.Result.Success -> {
+                    val isFavorite = result.data
+                    val mensaje = if (isFavorite) {
+                        "❤️ ${product.nombre} agregado a favoritos"
+                    } else {
+                        "💔 ${product.nombre} eliminado de favoritos"
+                    }
+                    Toast.makeText(this@ProductActivity, mensaje, Toast.LENGTH_SHORT).show()
+                }
+                is app.src.data.repositories.Result.Error -> {
+                    Toast.makeText(
+                        this@ProductActivity,
+                        "Error: ${result.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                else -> {}
+            }
+        }
     }
 
     private fun setupSearchView(categoryId: Int) {

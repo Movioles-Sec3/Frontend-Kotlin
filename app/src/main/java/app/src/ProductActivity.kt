@@ -8,6 +8,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -28,6 +29,7 @@ class ProductActivity : BaseActivity() {
     private lateinit var categoryNameTextView: TextView
     private lateinit var fabCart: FloatingActionButton
     private lateinit var conversionesDialogManager: ConversionesDialogManager
+    private lateinit var searchView: SearchView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +54,7 @@ class ProductActivity : BaseActivity() {
         errorTextView = findViewById(R.id.tv_error)
         categoryNameTextView = findViewById(R.id.tv_category_name)
         fabCart = findViewById(R.id.fab_cart)
+        searchView = findViewById(R.id.search_view)
 
         // Mostrar nombre de categoría o "All Products"
         if (categoryId != -1 && categoryName != null) {
@@ -96,7 +99,7 @@ class ProductActivity : BaseActivity() {
 
                     if (state.productos.isEmpty()) {
                         errorTextView.visibility = View.VISIBLE
-                        errorTextView.text = "No products found in this category"
+                        errorTextView.text = "No products found"
                         recyclerView.visibility = View.GONE
                     } else {
                         adapter.updateProducts(state.productos)
@@ -118,6 +121,9 @@ class ProductActivity : BaseActivity() {
         } else {
             viewModel.cargarProductos(null)
         }
+
+        // Configurar SearchView: buscar al enviar, resetear si el texto queda vacío
+        setupSearchView(categoryId)
 
         // FAB para ir al carrito
         fabCart.setOnClickListener {
@@ -142,6 +148,34 @@ class ProductActivity : BaseActivity() {
 
         // Actualizar badge inicial
         updateCartBadge()
+    }
+
+    private fun setupSearchView(categoryId: Int) {
+        // Cuando el usuario envía la búsqueda
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                val q = query ?: ""
+                if (q.isNotBlank()) {
+                    viewModel.buscarProductos(q)
+                    searchView.clearFocus()
+                } else {
+                    // si está vacío, recargar la lista por defecto
+                    if (categoryId != -1) viewModel.cargarProductos(categoryId) else viewModel.cargarProductos(null)
+                }
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                val t = newText ?: ""
+                if (t.isBlank()) {
+                    // Si el usuario borró el texto, restaurar la lista completa
+                    if (categoryId != -1) viewModel.cargarProductos(categoryId) else viewModel.cargarProductos(null)
+                    return true
+                }
+                // No buscar en cada pulsación para evitar llamadas excesivas; esperar al submit
+                return false
+            }
+        })
     }
 
     override fun onResume() {

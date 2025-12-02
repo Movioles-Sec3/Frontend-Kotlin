@@ -3,6 +3,7 @@ package app.src.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
@@ -16,7 +17,8 @@ import kotlin.math.round
 
 class OrderHistoryAdapter(
     private val orders: List<Compra>,
-    private val onOrderClick: (Compra) -> Unit
+    private val onOrderClick: (Compra) -> Unit,
+    private val onCalificarClick: (Compra) -> Unit // Nuevo callback para calificación
 ) : RecyclerView.Adapter<OrderHistoryAdapter.OrderViewHolder>() {
 
     class OrderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -32,6 +34,9 @@ class OrderHistoryAdapter(
         val tvTiempoPreparacion: TextView = itemView.findViewById(R.id.tv_tiempo_preparacion)
         val tvTiempoEsperaEntrega: TextView = itemView.findViewById(R.id.tv_tiempo_espera_entrega)
         val tvTiempoTotal: TextView = itemView.findViewById(R.id.tv_tiempo_total)
+
+        // Botón de calificación
+        val btnCalificar: Button = itemView.findViewById(R.id.btn_calificar)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OrderViewHolder {
@@ -81,8 +86,14 @@ class OrderHistoryAdapter(
             holder.tvTiempoTotal.text = "${formatTime(order.tiempoTotal!!)} min"
         }
 
+        // Click en la tarjeta para ver detalles
         holder.itemView.setOnClickListener {
             onOrderClick(order)
+        }
+
+        // Click en botón de calificación
+        holder.btnCalificar.setOnClickListener {
+            onCalificarClick(order)
         }
     }
 
@@ -100,18 +111,21 @@ class OrderHistoryAdapter(
             EstadoCompra.EN_PREPARACION -> "In Preparation"
             EstadoCompra.LISTO -> "Ready"
             EstadoCompra.ENTREGADO -> "Delivered"
-            EstadoCompra.WAITING_CONNECTION -> "Waiting Connection" // ✅ Nuevo estado
+            EstadoCompra.WAITING_CONNECTION -> "Pending Sync"
         }
     }
 
     private fun getEstadoColor(context: android.content.Context, estado: EstadoCompra): Int {
-        return when (estado) {
-            EstadoCompra.PAGADO -> context.getColor(R.color.status_paid)
-            EstadoCompra.EN_PREPARACION -> context.getColor(R.color.status_preparing)
-            EstadoCompra.LISTO -> context.getColor(R.color.status_ready)
-            EstadoCompra.ENTREGADO -> context.getColor(R.color.status_delivered)
-            EstadoCompra.WAITING_CONNECTION -> context.getColor(android.R.color.holo_orange_light) // ✅ Color naranja para waiting
-            else -> context.getColor(R.color.text_secondary)
+        val colorResId = when (estado) {
+            EstadoCompra.PAGADO -> com.google.android.material.R.attr.colorPrimary
+            EstadoCompra.EN_PREPARACION -> com.google.android.material.R.attr.colorTertiary
+            EstadoCompra.LISTO -> com.google.android.material.R.attr.colorSecondary
+            EstadoCompra.ENTREGADO -> com.google.android.material.R.attr.colorPrimary
+            EstadoCompra.WAITING_CONNECTION -> com.google.android.material.R.attr.colorError
+            else -> com.google.android.material.R.attr.colorOnSurfaceVariant
         }
+        val typedValue = android.util.TypedValue()
+        context.theme.resolveAttribute(colorResId, typedValue, true)
+        return typedValue.data
     }
 }

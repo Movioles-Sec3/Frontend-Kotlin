@@ -103,6 +103,11 @@
             android:name=".LocalStorageDebugActivity"
             android:exported="false" />
 
+        <!-- CalificarOrdenActivity -->
+        <activity
+            android:name=".CalificarOrdenActivity"
+            android:exported="false" />
+
         <!-- MainActivity (mantenemos por compatibilidad) -->
         <activity
             android:name=".MainActivity"

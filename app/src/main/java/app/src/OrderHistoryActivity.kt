@@ -87,20 +87,30 @@ class OrderHistoryActivity : BaseActivity() {
                 tvEmpty.visibility = View.GONE
                 tvError.visibility = View.GONE
 
-                val adapter = OrderHistoryAdapter(compras) { compra ->
-                    // ✅ Click on order - show details with QR (siempre disponible offline)
-                    val intent = Intent(this, OrderPickupActivity::class.java)
-                    intent.putExtra("qr_code", compra.qr?.codigoQrHash ?: "")
-                    intent.putExtra("compra_id", compra.id)
-                    intent.putExtra("total", compra.total)
-                    intent.putExtra("estado", compra.estado.name)
-                    startActivity(intent)
-                }
+                val adapter = OrderHistoryAdapter(
+                    compras,
+                    onOrderClick = { compra ->
+                        // ✅ Click on order - show details with QR (siempre disponible offline)
+                        val intent = Intent(this, OrderPickupActivity::class.java)
+                        intent.putExtra("qr_code", compra.qr?.codigoQrHash ?: "")
+                        intent.putExtra("compra_id", compra.id)
+                        intent.putExtra("total", compra.total)
+                        intent.putExtra("estado", compra.estado.name)
+                        startActivity(intent)
+                    },
+                    onCalificarClick = { compra ->
+                        // ✅ NUEVO: Click en botón calificar - abrir activity de calificación
+                        val intent = Intent(this, CalificarOrdenActivity::class.java)
+                        intent.putExtra(CalificarOrdenActivity.EXTRA_ORDER_ID, compra.id)
+                        intent.putExtra(CalificarOrdenActivity.EXTRA_ORDER_TOTAL, compra.total)
+                        startActivity(intent)
+                    }
+                )
                 recyclerView.adapter = adapter
             }
         }
 
-        // Load history (con caché automático)
+        // Load orders
         viewModel.cargarHistorial()
 
         // Back button

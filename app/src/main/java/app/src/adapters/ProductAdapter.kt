@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -18,10 +19,13 @@ import java.util.*
 class ProductAdapter(
     private var products: List<Producto>,
     private val onAddToCart: (Producto) -> Unit,
-    private val onShowConversions: (Producto) -> Unit
+    private val onShowConversions: (Producto) -> Unit,
+    private val onToggleFavorite: ((Producto) -> Unit)? = null,
+    private val favoriteProductIds: Set<Int> = emptySet()
 ) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
 
     private val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    private var currentFavorites = favoriteProductIds.toMutableSet()
 
     class ProductViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val productImage: ImageView = itemView.findViewById(R.id.iv_product_image)
@@ -31,6 +35,7 @@ class ProductAdapter(
         val productAvailability: TextView = itemView.findViewById(R.id.tv_product_availability)
         val btnAddToCart: Button = itemView.findViewById(R.id.btn_add_to_cart)
         val btnConversions: MaterialButton = itemView.findViewById(R.id.btn_conversions)
+        val btnFavorite: ImageButton = itemView.findViewById(R.id.btn_favorite)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProductViewHolder {
@@ -69,6 +74,22 @@ class ProductAdapter(
             holder.btnAddToCart.isEnabled = false
         }
 
+        // Configurar botón de favorito
+        val isFavorite = currentFavorites.contains(product.id)
+        updateFavoriteButton(holder.btnFavorite, isFavorite)
+
+        holder.btnFavorite.setOnClickListener {
+            onToggleFavorite?.invoke(product)
+            // Cambiar estado visual inmediatamente
+            val newState = !currentFavorites.contains(product.id)
+            if (newState) {
+                currentFavorites.add(product.id)
+            } else {
+                currentFavorites.remove(product.id)
+            }
+            updateFavoriteButton(holder.btnFavorite, newState)
+        }
+
         holder.btnAddToCart.setOnClickListener {
             onAddToCart(product)
         }
@@ -83,5 +104,20 @@ class ProductAdapter(
     fun updateProducts(newProducts: List<Producto>) {
         products = newProducts
         notifyDataSetChanged()
+    }
+
+    fun updateFavorites(favoriteIds: Set<Int>) {
+        currentFavorites = favoriteIds.toMutableSet()
+        notifyDataSetChanged()
+    }
+
+    private fun updateFavoriteButton(button: ImageButton, isFavorite: Boolean) {
+        if (isFavorite) {
+            button.setImageResource(android.R.drawable.btn_star_big_on)
+            button.contentDescription = "Remove from favorites"
+        } else {
+            button.setImageResource(android.R.drawable.btn_star_big_off)
+            button.contentDescription = "Add to favorites"
+        }
     }
 }

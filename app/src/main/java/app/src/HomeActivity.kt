@@ -270,9 +270,20 @@ class HomeActivity : BaseActivity() {
             startActivity(Intent(this, OrderHistoryActivity::class.java))
         }
 
+        // Favorites button - navigate to FavoritosActivity
+        findViewById<Button>(R.id.btn_favorites)?.setOnClickListener {
+            startActivity(Intent(this, FavoritosActivity::class.java))
+        }
+
         // Logout button
         findViewById<Button>(R.id.btn_logout)?.setOnClickListener {
             logout()
+        }
+
+        // Long press en Logout para abrir analytics secretos de favoritos
+        findViewById<Button>(R.id.btn_logout)?.setOnLongClickListener {
+            startActivity(Intent(this, FavoritesAnalyticsActivity::class.java))
+            true
         }
 
         // TAMBIÉN: Mantener el long press en el balance como alternativa

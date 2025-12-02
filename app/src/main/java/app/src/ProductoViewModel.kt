@@ -71,6 +71,45 @@ class ProductoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Nuevo: buscar productos por texto. Usa el repositorio que ya implementa búsqueda online
+     * y fallback a LRU cache cuando no hay internet.
+     */
+    fun buscarProductos(query: String) {
+        viewModelScope.launch {
+            _uiState.value = ProductoUiState.Loading
+
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    repo.buscarProductos(getApplication(), query)
+                }
+
+                when (result) {
+                    is Result.Success -> {
+                        withContext(Dispatchers.Main) {
+                            _uiState.value = ProductoUiState.Success(result.data)
+                        }
+                    }
+                    is Result.Error -> {
+                        withContext(Dispatchers.Main) {
+                            _uiState.value = ProductoUiState.Error(result.message)
+                        }
+                    }
+                    else -> {
+                        withContext(Dispatchers.Main) {
+                            _uiState.value = ProductoUiState.Error("Error desconocido en búsqueda")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error en buscarProductos: ${e.message}")
+                if (_uiState.value !is ProductoUiState.Success) {
+                    _uiState.value = ProductoUiState.Error("Error en la búsqueda: ${e.message}")
+                }
+            }
+        }
+    }
+
     private suspend fun actualizarProductosDesdeRed(idTipo: Int?, cacheKey: String, showErrorIfFails: Boolean) {
         withContext(Dispatchers.IO) {
             try {
@@ -132,4 +171,5 @@ class ProductoViewModel(application: Application) : AndroidViewModel(application
             }
         }
     }
+
 }

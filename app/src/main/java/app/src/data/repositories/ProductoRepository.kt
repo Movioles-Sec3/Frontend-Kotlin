@@ -72,6 +72,95 @@ class ProductoRepository {
         }
     }
 
+    // NUEVO: Búsqueda de productos por texto.
+    // Comportamiento:
+    // - Si query está vacío, delega a listarProductos para mantener consistencia.
+    // - Si hay internet: obtiene listado completo de la API y filtra por nombre/descripcion (case-insensitive), guarda el listado completo en cache.
+    // - Si no hay internet o la API falla: intenta filtrar sobre las entradas disponibles en LRU cache (keys comunes) y devuelve coincidencias.
+    suspend fun buscarProductos(context: Context, query: String): Result<List<Producto>> {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            // Delegar a listarProductos para comportamiento por defecto
+            return listarProductos(context, null, true)
+        }
+
+        return try {
+            val cacheManager = LruCacheManager.getInstance(context)
+            val hasInternet = NetworkUtils.isNetworkAvailable(context) && !ApiClient.forceOfflineMode
+            val lowerQuery = trimmed.lowercase()
+
+            if (hasInternet) {
+                try {
+                    // Obtener lista completa desde API (sin filtros)
+                    val response = api.listarProductos(null, true)
+                    if (response.isSuccessful && response.body() != null) {
+                        val productos: List<Producto> = response.body()!!
+
+                        // Guardar listado completo en cache para búsquedas offline futuras
+                        val cacheKey = cacheManager.generateProductosKey(null, true)
+                        cacheManager.putProductos(cacheKey, productos)
+
+                        // Filtrar por nombre o descripción (tipo explícito en lambda)
+                        val filtered = productos.filter { p: Producto ->
+                            p.nombre.lowercase().contains(lowerQuery) ||
+                                    (p.descripcion?.lowercase()?.contains(lowerQuery) ?: false)
+                        }
+
+                        Log.d(TAG, "🔎 Búsqueda online: ${filtered.size} coincidencias para '$trimmed'")
+                        return Result.Success(filtered, isFromCache = false, isCacheExpired = false)
+                    } else {
+                        Log.w(TAG, "⚠️ API search fallback: respuesta no exitosa, intentando usar cache")
+                        // fallthrough a uso de cache
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error buscando en API: ${e.message}, usando cache como respaldo")
+                    // fallthrough a uso de cache
+                }
+            }
+
+            // Sin internet o la API falló -> buscar en cache
+            val candidates = mutableListOf<Producto>()
+
+            // Intentar keys comunes: all disponible + recomendados
+            val keysToTry: List<String> = listOf(
+                cacheManager.generateProductosKey(null, true),
+                "productos_recomendados",
+                cacheManager.generateProductosKey(null, null)
+            )
+
+            keysToTry.forEach { key: String ->
+                try {
+                    val entry = cacheManager.getProductos(key)
+                    entry?.data?.let { list: List<Producto> ->
+                        candidates.addAll(list)
+                    }
+                } catch (_: Exception) {
+                    // ignorar
+                }
+            }
+
+            // Eliminar duplicados por id (especificar tipo de retorno)
+            val unique: List<Producto> = candidates.distinctBy { it.id }
+
+            val filtered = unique.filter { p: Producto ->
+                p.nombre.lowercase().contains(lowerQuery) ||
+                        (p.descripcion?.lowercase()?.contains(lowerQuery) ?: false)
+            }
+
+            return if (filtered.isNotEmpty()) {
+                Log.d(TAG, "🔎 Búsqueda offline: ${filtered.size} coincidencias para '$trimmed'")
+                Result.Success(filtered, isFromCache = true, isCacheExpired = false)
+            } else {
+                Log.e(TAG, "🔎 Búsqueda offline: 0 coincidencias para '$trimmed'")
+                Result.Error("No se encontraron productos para '$trimmed'")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error en buscarProductos: ${e.message}")
+            Result.Error(e.message ?: "Error en la búsqueda")
+        }
+    }
+
     suspend fun obtenerProducto(context: Context, productoId: Int): Result<Producto> {
         return try {
             val cacheManager = LruCacheManager.getInstance(context)

@@ -191,6 +191,16 @@
                     android:textColor="?attr/colorPrimary" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- Botón de calificación -->
+        <Button
+            android:id="@+id/btn_calificar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="⭐ Calificar Orden"
+            android:textSize="14sp"
+            style="@style/Widget.Material3.Button.TonalButton" />
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

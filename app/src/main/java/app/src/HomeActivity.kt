@@ -275,6 +275,11 @@ class HomeActivity : BaseActivity() {
             startActivity(Intent(this, FavoritosActivity::class.java))
         }
 
+        // User Insights button - navigate to UserInsightsActivity
+        findViewById<Button>(R.id.btn_user_insights)?.setOnClickListener {
+            startActivity(Intent(this, UserInsightsActivity::class.java))
+        }
+
         // Logout button
         findViewById<Button>(R.id.btn_logout)?.setOnClickListener {
             logout()

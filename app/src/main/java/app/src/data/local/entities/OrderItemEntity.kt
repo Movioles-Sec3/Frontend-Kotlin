@@ -21,6 +21,6 @@ data class OrderItemEntity(
     val productId: Int,
     val name: String,
     val quantity: Int,
-    val price: Double
+    val price: Double,
+    val imagenUrl: String? = null // URL de la imagen del producto para mostrarlo offline
 )
-

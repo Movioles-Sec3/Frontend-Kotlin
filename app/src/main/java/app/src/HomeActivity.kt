@@ -31,6 +31,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+/**
+ * Main activity for the home screen of the application.
+ *
+ * This activity handles the display of recommended products, user profile interactions,
+ * night mode toggling, and various analytics and recharge functionalities. It extends
+ * [BaseActivity] to inherit common activity behaviors.
+ *
+ * Key features include:
+ * - Loading and displaying recommended products in a RecyclerView.
+ * - Managing user authentication and logout.
+ * - Handling night mode preferences.
+ * - Emitting analytics events for performance metrics.
+ * - Displaying dialogs for adding items to cart and balance recharges.
+ */
 class HomeActivity : BaseActivity() {
 
     private val usuarioRepo = UsuarioRepository()
@@ -62,6 +76,14 @@ class HomeActivity : BaseActivity() {
         private const val TAG = "HomeActivity"
     }
 
+    /**
+     * Called when the activity is first created. Sets up the UI, initializes views,
+     * and configures observers and adapters.
+     *
+     * @param savedInstanceState If the activity is being re-initialized after previously
+     * being shut down, this Bundle contains the data it most recently supplied in
+     * [onSaveInstanceState]. Otherwise, it is null.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         // NO llamar applyThemeByHour() aquí porque BaseActivity ya lo hace
 
@@ -96,6 +118,10 @@ class HomeActivity : BaseActivity() {
         setupNightModeButton()
     }
 
+    /**
+     * Initializes the views in the activity's layout, binding them to their respective
+     * variables and setting up initial states.
+     */
     private fun initializeViews() {
         // Views existentes
         val userName = SessionManager.getUserName(this)
@@ -117,6 +143,10 @@ class HomeActivity : BaseActivity() {
         btnPerfil = findViewById(R.id.btnPerfil)
     }
 
+    /**
+     * Configures the RecyclerView for displaying recommended products, including
+     * setting up the adapter and handling loading/error states.
+     */
     private fun setupRecommendedProducts() {
         // Configurar RecyclerView con LinearLayoutManager horizontal
         rvRecommendedProducts.layoutManager = LinearLayoutManager(
@@ -131,6 +161,10 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Sets up LiveData observers for ViewModel data, such as recommended products
+     * and user state changes.
+     */
     private fun setupObservers() {
         // Observer para el estado de productos recomendados
         homeViewModel.uiState.observe(this) { state ->
@@ -176,6 +210,12 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Initializes and sets the adapter for the recommended products RecyclerView
+     * with the provided list of products.
+     *
+     * @param productos List of [Producto] items to display.
+     */
     private fun setupRecommendedProductsAdapter(productos: List<Producto>) {
         recommendedProductsAdapter = RecommendedProductsAdapter(
             productos = productos,
@@ -198,6 +238,11 @@ class HomeActivity : BaseActivity() {
         rvRecommendedProducts.adapter = recommendedProductsAdapter
     }
 
+    /**
+     * Adds the specified product to the user's shopping cart.
+     *
+     * @param producto The [Producto] to add to the cart.
+     */
     private fun agregarAlCarrito(producto: Producto) {
         if (!producto.disponible) {
             Toast.makeText(this, "Product not available", Toast.LENGTH_SHORT).show()
@@ -208,6 +253,11 @@ class HomeActivity : BaseActivity() {
         showAddToCartDialog(producto)
     }
 
+    /**
+     * Displays a dialog allowing the user to confirm adding a product to the cart.
+     *
+     * @param producto The [Producto] for which to show the dialog.
+     */
     private fun showAddToCartDialog(producto: Producto) {
         val input = EditText(this).apply {
             hint = "Quantity"
@@ -239,6 +289,10 @@ class HomeActivity : BaseActivity() {
             .show()
     }
 
+    /**
+     * Sets up existing core functionalities of the activity, such as button listeners
+     * and initial data loads.
+     */
     private fun setupExistingFunctionality() {
         // Recharge balance button
         val btnRecharge = findViewById<Button>(R.id.btn_recharge)
@@ -304,6 +358,9 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Displays analytics information related to user interactions or performance metrics.
+     */
     private fun showAnalyticsInfo() {
         val eventCount = AnalyticsLogger.getEventCount(this)
         val csvPath = AnalyticsLogger.getCSVFilePath(this)
@@ -329,6 +386,9 @@ class HomeActivity : BaseActivity() {
             .show()
     }
 
+    /**
+     * Shows a dialog for recharging the user's balance.
+     */
     private fun showRechargeDialog() {
         val input = EditText(this).apply {
             hint = "Enter amount"
@@ -355,6 +415,11 @@ class HomeActivity : BaseActivity() {
             .show()
     }
 
+    /**
+     * Processes a balance recharge for the user.
+     *
+     * @param amount The amount to recharge.
+     */
     private fun rechargeBalance(amount: Double) {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
@@ -405,6 +470,9 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Logs out the current user, clearing session data and navigating to the login screen.
+     */
     private fun logout() {
         SessionManager.clearSession(this)
         SessionManager.clearProfileImage(this) // Eliminar imagen de perfil al cerrar sesión
@@ -415,6 +483,9 @@ class HomeActivity : BaseActivity() {
         finish()
     }
 
+    /**
+     * Configures the night mode toggle button, including its initial state and click listener.
+     */
     private fun setupNightModeButton() {
         updateNightModeButton()
 
@@ -423,6 +494,9 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Updates the appearance and state of the night mode button based on current preferences.
+     */
     private fun updateNightModeButton() {
         val isNightMode = SessionManager.getNightMode(this)
 
@@ -435,6 +509,9 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    /**
+     * Toggles the application's night mode on or off, updating the UI accordingly.
+     */
     private fun toggleNightMode() {
         val currentMode = SessionManager.getNightMode(this)
         val newMode = !currentMode
@@ -457,6 +534,9 @@ class HomeActivity : BaseActivity() {
         updateNightModeButton()
     }
 
+    /**
+     * Emits an event indicating that the menu is ready, used for analytics tracking.
+     */
     private fun emitMenuReadyEvent() {
         // 1. Emitir evento tradicional (HomeActivity start hasta menu ready)
         val menuDuration = System.currentTimeMillis() - menuLoadStartTime

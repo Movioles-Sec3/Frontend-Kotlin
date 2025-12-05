@@ -303,6 +303,7 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="140dp"
+            android:layout_marginBottom="16dp"
             app:cardBackgroundColor="#E91E63"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
@@ -312,6 +313,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="❤️ My Favorites"
+                android:textColor="@color/color_on_primary"
+                android:backgroundTint="@android:color/transparent"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                style="?attr/borderlessButtonStyle" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Cuarta fila: Botón de User Insights -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            app:cardBackgroundColor="#FF9800"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
+
+            <Button
+                android:id="@+id/btn_user_insights"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="📊 Mis Estadísticas"
                 android:textColor="@color/color_on_primary"
                 android:backgroundTint="@android:color/transparent"
                 android:textSize="16sp"

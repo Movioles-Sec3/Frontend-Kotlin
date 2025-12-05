@@ -108,6 +108,11 @@
             android:name=".CalificarOrdenActivity"
             android:exported="false" />
 
+        <!-- UserInsightsActivity -->
+        <activity
+            android:name=".UserInsightsActivity"
+            android:exported="false" />
+
         <!-- MainActivity (mantenemos por compatibilidad) -->
         <activity
             android:name=".MainActivity"

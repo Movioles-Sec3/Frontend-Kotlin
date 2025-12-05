@@ -144,7 +144,8 @@ class CompraRepository {
                         productId = detalle.producto.id,
                         name = detalle.producto.nombre,
                         quantity = detalle.cantidad,
-                        price = detalle.precioUnitarioCompra
+                        price = detalle.precioUnitarioCompra,
+                        imagenUrl = detalle.producto.imagenUrl
                     )
                 }
 
@@ -285,7 +286,8 @@ class CompraRepository {
                             productId = detalle.idProducto,
                             name = it.producto.nombre,
                             quantity = detalle.cantidad,
-                            price = it.producto.precio
+                            price = it.producto.precio,
+                            imagenUrl = it.producto.imagenUrl
                         )
                     }
                 }
@@ -393,7 +395,8 @@ class CompraRepository {
                                 productId = detalle.idProducto,
                                 name = it.producto.nombre,
                                 quantity = detalle.cantidad,
-                                price = it.producto.precio
+                                price = it.producto.precio,
+                                imagenUrl = it.producto.imagenUrl
                             )
                         }
                     }

@@ -46,6 +46,10 @@ object SessionManager {
         return getPreferences(context).getFloat(KEY_USER_SALDO, 0f).toDouble()
     }
 
+    fun getUserId(context: Context): Int {
+        return getPreferences(context).getInt(KEY_USER_ID, -1)
+    }
+
     /**
      * ✅ REQUERIMIENTO 3: Obtiene el saldo del usuario (alias para compatibilidad)
      */
